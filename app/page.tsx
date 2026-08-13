@@ -27,8 +27,8 @@ const accentColors = [
 ];
 
 const featuredChannels = [
-  { name: "Ginduyah", handle: "@ginduyah", url: "https://www.youtube.com/@ginduyah", views: "2,046,509 views", image: "https://yt3.googleusercontent.com/AhdFFGGJJblVlnW-XgA4xOhl8F7pTU6L1DKk8slahB-dn4eG5kOKdviv63PvpHFhGXlFZfPLMA=s900-c-k-c0x00ffffff-no-rj" },
-  { name: "Rezaro", handle: "@RezaroReads", url: "https://www.youtube.com/@RezaroReads", views: "883,831 views", image: "https://yt3.googleusercontent.com/bCwlSwg1EppYymVuojO1oqi4tQbwmoNgoNfYDPUvsJlz69KzDRVXzfKGbMAkibR8Yu38lmCXCw=s900-c-k-c0x00ffffff-no-rj" },
+  { name: "Ginduyah", handle: "@ginduyah", url: "https://www.youtube.com/@ginduyah", views: "2M views", image: "https://yt3.googleusercontent.com/AhdFFGGJJblVlnW-XgA4xOhl8F7pTU6L1DKk8slahB-dn4eG5kOKdviv63PvpHFhGXlFZfPLMA=s900-c-k-c0x00ffffff-no-rj" },
+  { name: "Rezaro", handle: "@RezaroReads", url: "https://www.youtube.com/@RezaroReads", views: "884K views", image: "https://yt3.googleusercontent.com/bCwlSwg1EppYymVuojO1oqi4tQbwmoNgoNfYDPUvsJlz69KzDRVXzfKGbMAkibR8Yu38lmCXCw=s900-c-k-c0x00ffffff-no-rj" },
   { name: "LemurStories", handle: "@LemurStories", url: "https://www.youtube.com/@LemurStories", views: "No public views yet", image: "https://yt3.googleusercontent.com/ECZLBSNHBHpIJ7Wo6EYGG_QChY8X9z-9CIGSUdE7FZN_XjKvzqwt3MVnO3bd7mlSsvzSpUDL=s900-c-k-c0x00ffffff-no-rj" },
 ];
 
