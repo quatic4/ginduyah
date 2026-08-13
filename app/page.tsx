@@ -26,6 +26,12 @@ const accentColors = [
   { name: "Green", hex: "#39c978", rgb: "57,201,120" }, { name: "Yellow", hex: "#f2bb35", rgb: "242,187,53" },
 ];
 
+const featuredChannels = [
+  { name: "Ginduyah", handle: "@ginduyah", url: "https://www.youtube.com/@ginduyah", mark: "G", color: "#ff541f" },
+  { name: "Rezaro Reads", handle: "@RezaroReads", url: "https://www.youtube.com/@RezaroReads", mark: "R", color: "#438cff" },
+  { name: "Lemur Stories", handle: "@LemurStories", url: "https://www.youtube.com/@LemurStories", mark: "L", color: "#9b6cff" },
+];
+
 const avatarColors = ["#ff4500", "#ff3b4f", "#f04fbd", "#9b6cff", "#438cff", "#20c7d9", "#39c978", "#f2a531"];
 
 function avatarColor(name: string) {
@@ -84,7 +90,6 @@ export default function Home() {
   const [replyAvatarImage, setReplyAvatarImage] = useState<HTMLImageElement | null>(null);
   const [status, setStatus] = useState("Paste a Reddit link, or edit the story manually.");
   const [loading, setLoading] = useState(false);
-  const [copyingJson, setCopyingJson] = useState(false);
   const [showFallback, setShowFallback] = useState(false);
   const [redditJson, setRedditJson] = useState("");
   const [includeReplies, setIncludeReplies] = useState(false);
@@ -267,18 +272,6 @@ export default function Home() {
     finally { setLoading(false); }
   }
 
-  async function copyJson() {
-    if (!/^https?:\/\/(www\.|old\.)?reddit\.com\//i.test(url) && !/^https?:\/\/redd\.it\//i.test(url)) { setStatus("Enter a valid Reddit post URL first."); return; }
-    setCopyingJson(true); setStatus("Getting the complete Reddit JSON…");
-    try {
-      const response = await fetch(`/api/reddit?raw=1&url=${encodeURIComponent(url)}`); const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || "Reddit request failed");
-      const text = JSON.stringify(payload, null, 2); await navigator.clipboard.writeText(text); setRedditJson(text); setShowFallback(true);
-      setStatus("JSON copied to your clipboard and added to the import box below.");
-    } catch (error) { setShowFallback(true); setStatus(error instanceof Error ? error.message : "Reddit blocked the JSON request. Try the manual fallback below."); }
-    finally { setCopyingJson(false); }
-  }
-
   function importJson() {
     try {
       const payload = JSON.parse(redditJson);
@@ -325,9 +318,9 @@ export default function Home() {
       <div className="controls">
         <div className="step"><span>01</span><h2>Bring in your story</h2></div>
         <label className="label" htmlFor="reddit-url">Reddit post URL</label>
-        <div className="url-row"><input id="reddit-url" value={url} onChange={(e)=>setUrl(e.target.value)} onKeyDown={(e)=>e.key==="Enter"&&fetchPost()} placeholder="https://www.reddit.com/r/.../comments/..."/><button className="copy-json" onClick={copyJson} disabled={copyingJson || loading}>{copyingJson ? "COPYING…" : "COPY JSON"}</button><button className="fetch" onClick={fetchPost} disabled={loading || copyingJson}>{loading ? "Loading…" : "Fetch post"}</button></div>
+        <div className="url-row"><input id="reddit-url" value={url} onChange={(e)=>setUrl(e.target.value)} onKeyDown={(e)=>e.key==="Enter"&&fetchPost()} placeholder="https://www.reddit.com/r/.../comments/..."/><a className="copy-json" href={jsonUrl()} target="_blank" rel="noreferrer" onClick={()=>setShowFallback(true)}>OPEN JSON</a><button className="fetch" onClick={fetchPost} disabled={loading}>{loading ? "Loading…" : "Fetch post"}</button></div>
         <p className="status">{status}</p>
-        {showFallback && <div className="fallback"><strong>Quick fallback</strong><p>Use Copy JSON above to fill this box automatically. If Reddit blocks it, open the manual JSON page instead.</p><a href={jsonUrl()} target="_blank" rel="noreferrer">Open manual Reddit JSON ↗</a><textarea aria-label="Reddit JSON" rows={5} value={redditJson} onChange={(e)=>setRedditJson(e.target.value)} placeholder="Reddit JSON will appear here…"/><button onClick={importJson} disabled={!redditJson.trim()}>Import copied post</button></div>}
+        {showFallback && <div className="fallback"><strong>Quick fallback</strong><p>On the Reddit JSON page, copy everything, come back here, and paste it into the box.</p><a href={jsonUrl()} target="_blank" rel="noreferrer">Open Reddit JSON ↗</a><textarea aria-label="Reddit JSON" rows={5} value={redditJson} onChange={(e)=>setRedditJson(e.target.value)} placeholder="Paste the Reddit JSON here…"/><button onClick={importJson} disabled={!redditJson.trim()}>Import copied post</button></div>}
         <div className="divider"/>
         <div className="step"><span>02</span><h2>Fine-tune the copy</h2></div>
         <div className="two"><label>Subreddit<input value={story.subreddit} onChange={(e)=>update("subreddit", e.target.value)}/></label><label>Username<input value={story.author} onChange={(e)=>update("author", e.target.value)}/></label></div>
@@ -355,6 +348,10 @@ export default function Home() {
         <div className="theme-row"><span>Card appearance</span><div><button className={theme==="dark"?"active":""} onClick={()=>setTheme("dark")}>Dark</button><button className={theme==="light"?"active":""} onClick={()=>setTheme("light")}>Light</button></div></div>
       </div>
       <aside className="preview-panel"><div className="preview-top"><div><span>LIVE PREVIEW</span><strong>{width} × {height} PNG</strong></div><button onClick={resetCard}>Reset</button></div><div ref={canvasWrapRef} className={`canvas-wrap ${transparent?"checker":""}`}><canvas ref={canvasRef}/></div><button className="download" onClick={download}>Download PNG <span>↓</span></button><p className="tip">All story text is automatically resized to fit. Use 1080 × 1920 for Shorts.</p></aside>
+    </section>
+    <section className="channel-showcase" aria-labelledby="channel-showcase-title">
+      <div className="channel-heading"><p className="eyebrow">USED BY STORYTELLERS</p><h2 id="channel-showcase-title">Channels creating with Ginduyah</h2></div>
+      <div className="channel-marquee"><div className="channel-track">{[...featuredChannels,...featuredChannels].map((channel,index)=><a className="channel-card" href={channel.url} target="_blank" rel="noreferrer" key={`${channel.handle}-${index}`} aria-hidden={index>=featuredChannels.length?"true":undefined} tabIndex={index>=featuredChannels.length?-1:undefined}><span className="channel-avatar" style={{background:channel.color}}>{channel.mark}</span><span><strong>{channel.name}</strong><small>{channel.handle}</small></span><b>▶</b></a>)}</div></div>
     </section>
     <footer><strong>Built for storytellers.</strong><span>Reddit content remains subject to its original author’s rights and Reddit’s terms.</span></footer>
   </main>;
