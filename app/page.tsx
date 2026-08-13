@@ -102,7 +102,7 @@ export default function Home() {
   useEffect(() => {
     const root = document.documentElement;
     let targetX = window.innerWidth * .82; let targetY = 0;
-    let glowX = targetX; let glowY = targetY; let trailX = targetX; let trailY = targetY;
+    let glowX = targetX; let glowY = targetY; let trailX = targetX; let trailY = targetY; let tailX = targetX; let tailY = targetY;
     let animationFrame = 0;
     const followGlow = (event: PointerEvent) => {
       targetX = event.clientX; targetY = event.clientY;
@@ -110,8 +110,10 @@ export default function Home() {
     const animateGlow = () => {
       glowX += (targetX - glowX) * .16; glowY += (targetY - glowY) * .16;
       trailX += (glowX - trailX) * .055; trailY += (glowY - trailY) * .055;
+      tailX += (trailX - tailX) * .028; tailY += (trailY - tailY) * .028;
       root.style.setProperty("--glow-x", `${glowX}px`); root.style.setProperty("--glow-y", `${glowY}px`);
       root.style.setProperty("--trail-x", `${trailX}px`); root.style.setProperty("--trail-y", `${trailY}px`);
+      root.style.setProperty("--tail-x", `${tailX}px`); root.style.setProperty("--tail-y", `${tailY}px`);
       animationFrame = requestAnimationFrame(animateGlow);
     };
     window.addEventListener("pointermove", followGlow, { passive: true });
