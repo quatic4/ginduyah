@@ -12,3 +12,5 @@ A web-based Reddit story card generator that turns Reddit posts, comments, and r
 ## Deploy
 
 Import this repository into Vercel as a Next.js project. Vercel will install the dependencies and build the site automatically.
+
+Deployed with Vercel.
