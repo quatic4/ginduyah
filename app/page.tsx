@@ -98,6 +98,7 @@ export default function Home() {
   const [selectedCommentIds, setSelectedCommentIds] = useState<string[]>([]);
   const [replyContext, setReplyContext] = useState<{ depth: number; postAuthor: string } | null>(null);
   const [accent, setAccent] = useState(accentColors[0]);
+  const [channelCards, setChannelCards] = useState(featuredChannels);
 
   const update = (key: keyof Story, value: string | number) => {
     setStory((s) => ({ ...s, [key]: value }));
@@ -126,6 +127,17 @@ export default function Home() {
     document.documentElement.style.setProperty("--orange", accent.hex);
     document.documentElement.style.setProperty("--accent-rgb", accent.rgb);
   }, [accent]);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/youtube")
+      .then((response) => response.ok ? response.json() : Promise.reject())
+      .then((payload: { channels?: typeof featuredChannels }) => {
+        if (active && payload.channels?.length === featuredChannels.length) setChannelCards(payload.channels);
+      })
+      .catch(() => { /* Keep the last known channel details if YouTube is unavailable. */ });
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
@@ -351,7 +363,7 @@ export default function Home() {
     </section>
     <section className="channel-showcase" aria-labelledby="channel-showcase-title">
       <div className="channel-heading"><p className="eyebrow">USED BY STORYTELLERS</p><h2 id="channel-showcase-title">Channels creating with Ginduyah</h2></div>
-      <div className="channel-marquee"><div className="channel-track">{[...featuredChannels,...featuredChannels,...featuredChannels].map((channel,index)=><a className="channel-card" href={channel.url} target="_blank" rel="noreferrer" key={`${channel.handle}-${index}`} aria-hidden={index>=featuredChannels.length?"true":undefined} tabIndex={index>=featuredChannels.length?-1:undefined}><img className="channel-avatar" src={channel.image} alt={index<featuredChannels.length?`${channel.name} profile picture`:""}/><span><strong>{channel.name}</strong><small>{channel.handle}</small><small className="channel-views">{channel.views}</small></span><b>▶</b></a>)}</div></div>
+      <div className="channel-marquee"><div className="channel-track">{[...channelCards,...channelCards,...channelCards].map((channel,index)=><a className="channel-card" href={channel.url} target="_blank" rel="noreferrer" key={`${channel.handle}-${index}`} aria-hidden={index>=channelCards.length?"true":undefined} tabIndex={index>=channelCards.length?-1:undefined}><img className="channel-avatar" src={channel.image} alt={index<channelCards.length?`${channel.name} profile picture`:""}/><span><strong>{channel.name}</strong><small>{channel.handle}</small><small className="channel-views">{channel.views}</small></span><b>▶</b></a>)}</div></div>
     </section>
     <footer><strong>Built for storytellers.</strong><span>Reddit content remains subject to its original author’s rights and Reddit’s terms.</span></footer>
   </main>;
