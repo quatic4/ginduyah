@@ -130,7 +130,7 @@ export default function Home() {
 
   useEffect(() => {
     let active = true;
-    fetch("/api/youtube")
+    fetch("/api/channel-stats")
       .then((response) => response.ok ? response.json() : Promise.reject())
       .then((payload: { channels?: typeof featuredChannels }) => {
         if (active && payload.channels?.length === featuredChannels.length) setChannelCards(payload.channels);
