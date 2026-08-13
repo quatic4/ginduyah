@@ -99,6 +99,7 @@ export default function Home() {
   const [replyContext, setReplyContext] = useState<{ depth: number; postAuthor: string } | null>(null);
   const [accent, setAccent] = useState(accentColors[0]);
   const [rgbMode, setRgbMode] = useState(false);
+  const [themeMenuOpen, setThemeMenuOpen] = useState(false);
   const [channelCards, setChannelCards] = useState(featuredChannels);
 
   const update = (key: keyof Story, value: string | number) => {
@@ -345,7 +346,7 @@ export default function Home() {
   function resetCard() { setStory(starter); setOriginalPost(starter); setSelectedCommentIds([]); setReplyContext(null); }
 
   return <main>
-    <header><div className="brand"><span className="brand-mark"><img src="/ginduyah-avatar.png" alt="Ginduyah"/></span><span>ginduyah</span></div><div className="header-actions"><label className="theme-menu"><span>THEME</span><select aria-label="Theme" value={rgbMode?"RGB":accent.name} onChange={(event)=>{if(event.target.value==="RGB"){setRgbMode(true);return;}const color=accentColors.find((item)=>item.name===event.target.value);if(color){setRgbMode(false);setAccent(color);}}}>{accentColors.map((color)=><option key={color.name} value={color.name}>{color.name}</option>)}<option value="RGB">RGB — Animated</option></select></label><a className="youtube-link" href="https://youtube.com/@ginduyah/" target="_blank" rel="noreferrer" aria-label="Visit Ginduyah on YouTube"><span>▶</span> YouTube</a></div></header>
+    <header><div className="brand"><span className="brand-mark"><img src="/ginduyah-avatar.png" alt="Ginduyah"/></span><span>ginduyah</span></div><div className="header-actions"><div className={`theme-menu ${themeMenuOpen?"open":""}`}><button className="theme-trigger" onClick={()=>setThemeMenuOpen((open)=>!open)} aria-haspopup="listbox" aria-expanded={themeMenuOpen}><span className={rgbMode?"theme-dot rgb-dot":"theme-dot"} style={rgbMode?undefined:{background:accent.hex}}/><span>THEME</span><strong>{rgbMode?"RGB":accent.name}</strong><i>⌄</i></button>{themeMenuOpen&&<div className="theme-options" role="listbox" aria-label="Choose theme">{accentColors.map((color)=><button key={color.name} role="option" aria-selected={!rgbMode&&accent.name===color.name} className={!rgbMode&&accent.name===color.name?"selected":""} onClick={()=>{setRgbMode(false);setAccent(color);setThemeMenuOpen(false)}}><span className="theme-dot" style={{background:color.hex}}/><span>{color.name}</span><b>✓</b></button>)}<button role="option" aria-selected={rgbMode} className={rgbMode?"selected":""} onClick={()=>{setRgbMode(true);setThemeMenuOpen(false)}}><span className="theme-dot rgb-dot"/><span>RGB <small>Animated</small></span><b>✓</b></button></div>}</div><a className="youtube-link" href="https://youtube.com/@ginduyah/" target="_blank" rel="noreferrer" aria-label="Visit Ginduyah on YouTube"><span>▶</span> YouTube</a></div></header>
     <section className="intro"><p className="eyebrow">REDDIT → SHORT-FORM READY</p><h1>Turn any story into a<br/><em>scroll-stopping card.</em></h1><p className="lede">Paste a Reddit post, tune the canvas, and download a crisp PNG for Shorts, TikTok, or Reels.</p></section>
     <section className="workspace">
       <div className="controls">
