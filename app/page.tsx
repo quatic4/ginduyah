@@ -73,6 +73,7 @@ function commentBubble(ctx: CanvasRenderingContext2D, x: number, y: number, size
 
 export default function Home() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const canvasWrapRef = useRef<HTMLDivElement>(null);
   const [story, setStory] = useState(starter);
   const [url, setUrl] = useState("");
   const [preset, setPreset] = useState<SizePreset>("short");
@@ -122,6 +123,14 @@ export default function Home() {
     document.documentElement.style.setProperty("--orange", accent.hex);
     document.documentElement.style.setProperty("--accent-rgb", accent.rgb);
   }, [accent]);
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      const wrap = canvasWrapRef.current;
+      if (wrap) wrap.scrollTop = Math.max(0, (wrap.scrollHeight - wrap.clientHeight) / 2);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [width, height, selectedCommentIds]);
 
   useEffect(() => {
     const canvas = canvasRef.current; if (!canvas) return;
@@ -347,7 +356,7 @@ export default function Home() {
         <div className="background-row"><label className="check"><input type="checkbox" checked={transparent} onChange={(e)=>setTransparent(e.target.checked)}/><span/> Transparent background</label><label className={transparent?"color disabled":"color"}>Solid color<input type="color" value={bg} disabled={transparent} onChange={(e)=>setBg(e.target.value)}/></label></div>
         <div className="theme-row"><span>Card appearance</span><div><button className={theme==="dark"?"active":""} onClick={()=>setTheme("dark")}>Dark</button><button className={theme==="light"?"active":""} onClick={()=>setTheme("light")}>Light</button></div></div>
       </div>
-      <aside className="preview-panel"><div className="preview-top"><div><span>LIVE PREVIEW</span><strong>{width} × {height} PNG</strong></div><button onClick={resetCard}>Reset</button></div><div className={`canvas-wrap ${transparent?"checker":""}`}><canvas ref={canvasRef}/></div><button className="download" onClick={download}>Download PNG <span>↓</span></button><p className="tip">All story text is automatically resized to fit. Use 1080 × 1920 for Shorts.</p></aside>
+      <aside className="preview-panel"><div className="preview-top"><div><span>LIVE PREVIEW</span><strong>{width} × {height} PNG</strong></div><button onClick={resetCard}>Reset</button></div><div ref={canvasWrapRef} className={`canvas-wrap ${transparent?"checker":""}`}><canvas ref={canvasRef}/></div><button className="download" onClick={download}>Download PNG <span>↓</span></button><p className="tip">All story text is automatically resized to fit. Use 1080 × 1920 for Shorts.</p></aside>
     </section>
     <footer><strong>Built for storytellers.</strong><span>Reddit content remains subject to its original author’s rights and Reddit’s terms.</span></footer>
   </main>;
