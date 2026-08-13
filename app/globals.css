@@ -36,7 +36,7 @@ input::placeholder,textarea::placeholder { color:#60656c; }
 input:focus,textarea:focus { border-color:var(--orange);box-shadow:0 0 0 2px rgba(var(--accent-rgb),.12); }
 .url-row { display:grid;grid-template-columns:minmax(0,1fr) auto auto; }
 .url-row input { margin:0;border-radius:3px 0 0 3px; }
-.copy-json { border:1px solid #3c4148;border-left:0;background:#202329;color:var(--orange);padding:0 16px;font-size:10px;font-weight:800;letter-spacing:.08em;white-space:nowrap; }
+.copy-json { border:1px solid #3c4148;border-left:0;background:#202329;color:var(--orange);padding:0 16px;font-size:10px;font-weight:800;letter-spacing:.08em;white-space:nowrap;text-decoration:none;display:grid;place-items:center; }
 .copy-json:hover { background:rgba(var(--accent-rgb),.1); }
 .copy-json:disabled { opacity:.55;cursor:wait; }
 .fetch { border:0;background:var(--orange);color:white;padding:0 22px;font-weight:800;border-radius:0 3px 3px 0; }
@@ -98,6 +98,23 @@ canvas { display:block;width:100%;height:auto;box-shadow:0 22px 45px rgba(0,0,0,
 .tip { text-align:center;color:var(--muted);font-size:11px;margin:12px 0; }
 footer { max-width:1344px;margin:auto;padding:24px 48px 42px;border-top:1px solid var(--line);display:flex;justify-content:space-between;font-size:11px;color:var(--muted); }
 footer strong { color:var(--ink); }
+.channel-showcase { padding:62px 0 66px;border-top:1px solid var(--line);overflow:hidden; }
+.channel-heading { max-width:1344px;margin:0 auto 28px;padding:0 48px; }
+.channel-heading .eyebrow { margin:0 0 10px; }
+.channel-heading h2 { font-size:clamp(27px,3vw,42px);letter-spacing:-.035em; }
+.channel-marquee { width:100%;overflow:hidden;mask-image:linear-gradient(90deg,transparent,#000 9%,#000 91%,transparent); }
+.channel-track { width:max-content;display:flex;gap:18px;padding:8px 9px;animation:channel-scroll 24s linear infinite; }
+.channel-marquee:hover .channel-track { animation-play-state:paused; }
+.channel-card { width:300px;display:flex;align-items:center;gap:14px;padding:17px 18px;border:1px solid #30343a;border-radius:999px;background:#15171a;color:var(--ink);text-decoration:none;box-shadow:0 10px 30px rgba(0,0,0,.18);transition:transform .2s,border-color .2s,background .2s; }
+.channel-card:hover { transform:translateY(-3px);border-color:var(--orange);background:#1b1d21; }
+.channel-avatar { width:48px;height:48px;flex:0 0 48px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:20px;font-weight:800;box-shadow:inset 0 0 0 2px rgba(255,255,255,.16); }
+.channel-card>span:nth-child(2) { min-width:0;display:grid;gap:4px; }
+.channel-card strong { font-size:14px;white-space:nowrap; }
+.channel-card small { color:var(--muted);font-size:11px;white-space:nowrap; }
+.channel-card b { margin-left:auto;width:28px;height:20px;border-radius:6px;display:grid;place-items:center;background:#ff0033;color:#fff;font-size:9px;padding-left:2px; }
+@keyframes channel-scroll { to { transform:translateX(calc(-50% - 9px)); } }
 @media(max-width:850px){ header,.intro,.workspace,footer{padding-left:22px;padding-right:22px}.intro{padding-top:48px}.workspace{display:block}.controls{border-right:0;padding-right:0}.preview-panel{position:static;padding-left:0;border-top:1px solid var(--line)}.canvas-wrap{height:500px}footer{gap:20px;flex-direction:column}.privacy{display:none}.accent-picker>span{display:none} }
 @media(max-width:600px){.accent-picker{gap:5px}.accent-picker button{width:15px;height:15px}.brand{font-size:19px}.header-actions{gap:10px}.youtube-link{padding:7px}.youtube-link{font-size:0}.youtube-link span{font-size:8px}}
+@media(max-width:600px){.channel-showcase{padding:46px 0}.channel-heading{padding:0 22px}.channel-card{width:260px}.channel-track{animation-duration:20s}}
+@media(prefers-reduced-motion:reduce){.channel-track{animation-play-state:paused}}
 @media(max-width:520px){ .url-row{grid-template-columns:1fr 1fr}.url-row input{grid-column:1/-1}.url-row input,.fetch,.copy-json{border-radius:3px;border:1px solid #34383e}.fetch,.copy-json{padding:13px}.two{grid-template-columns:1fr}.presets{grid-template-columns:1fr}.canvas-wrap{height:430px} }
