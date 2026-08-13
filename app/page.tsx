@@ -151,7 +151,7 @@ export default function Home() {
 
   useEffect(() => {
     let active = true;
-    fetch("/api/channel-stats")
+    fetch("/api/channels")
       .then((response) => response.ok ? response.json() : Promise.reject())
       .then((payload: { channels?: typeof featuredChannels }) => {
         if (active && payload.channels?.length === featuredChannels.length) setChannelCards(payload.channels);
@@ -345,7 +345,7 @@ export default function Home() {
   function resetCard() { setStory(starter); setOriginalPost(starter); setSelectedCommentIds([]); setReplyContext(null); }
 
   return <main>
-    <header><div className="brand"><span className="brand-mark"><img src="/ginduyah-avatar.png" alt="Ginduyah"/></span><span>ginduyah</span></div><div className="header-actions"><div className="accent-picker" aria-label="Theme color"><span>Theme</span>{accentColors.map((color)=><button key={color.name} className={!rgbMode&&accent.name===color.name?"active":""} style={{background:color.hex}} onClick={()=>{setRgbMode(false);setAccent(color)}} aria-label={`${color.name} theme`} title={color.name}/>)}<button className={`rgb-swatch ${rgbMode?"active":""}`} onClick={()=>setRgbMode(true)} aria-label="Animated RGB theme" title="RGB theme">RGB</button></div><a className="youtube-link" href="https://youtube.com/@ginduyah/" target="_blank" rel="noreferrer" aria-label="Visit Ginduyah on YouTube"><span>▶</span> YouTube</a></div></header>
+    <header><div className="brand"><span className="brand-mark"><img src="/ginduyah-avatar.png" alt="Ginduyah"/></span><span>ginduyah</span></div><div className="header-actions"><label className="theme-menu"><span>THEME</span><select aria-label="Theme" value={rgbMode?"RGB":accent.name} onChange={(event)=>{if(event.target.value==="RGB"){setRgbMode(true);return;}const color=accentColors.find((item)=>item.name===event.target.value);if(color){setRgbMode(false);setAccent(color);}}}>{accentColors.map((color)=><option key={color.name} value={color.name}>{color.name}</option>)}<option value="RGB">RGB — Animated</option></select></label><a className="youtube-link" href="https://youtube.com/@ginduyah/" target="_blank" rel="noreferrer" aria-label="Visit Ginduyah on YouTube"><span>▶</span> YouTube</a></div></header>
     <section className="intro"><p className="eyebrow">REDDIT → SHORT-FORM READY</p><h1>Turn any story into a<br/><em>scroll-stopping card.</em></h1><p className="lede">Paste a Reddit post, tune the canvas, and download a crisp PNG for Shorts, TikTok, or Reels.</p></section>
     <section className="workspace">
       <div className="controls">
