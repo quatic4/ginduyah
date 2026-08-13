@@ -1,13 +1,14 @@
-:root { --ink:#f5f6f7; --muted:#94999f; --paper:#0b0c0e; --panel:#15171a; --orange:#ff541f; --accent-rgb:255,84,31; --line:#292c31; --glow-x:82vw; --glow-y:0px; --trail-x:76vw; --trail-y:80px; --tail-x:70vw; --tail-y:130px; }
+:root { --ink:#f5f6f7; --muted:#94999f; --paper:#0b0c0e; --panel:#15171a; --orange:#ff541f; --accent-rgb:255,84,31; --line:#292c31; --glow-x:82vw; --glow-y:0px; }
 * { box-sizing: border-box; }
 html { background: var(--paper); }
-body { margin:0; color:var(--ink); background:radial-gradient(ellipse 235px 205px at var(--glow-x) var(--glow-y),rgba(var(--accent-rgb),.24) 0,rgba(var(--accent-rgb),.085) 40%,transparent 76%),radial-gradient(ellipse 520px 230px at var(--trail-x) var(--trail-y),rgba(var(--accent-rgb),.12) 0,rgba(var(--accent-rgb),.048) 48%,transparent 82%),radial-gradient(ellipse 760px 270px at var(--tail-x) var(--tail-y),rgba(var(--accent-rgb),.065) 0,rgba(var(--accent-rgb),.025) 52%,transparent 84%),var(--paper); background-attachment:fixed; font-family:Arial,Helvetica,sans-serif; }
+body { margin:0; color:var(--ink); background:radial-gradient(ellipse 235px 205px at var(--glow-x) var(--glow-y),rgba(var(--accent-rgb),.24) 0,rgba(var(--accent-rgb),.085) 40%,transparent 76%),var(--paper); background-attachment:fixed; font-family:Arial,Helvetica,sans-serif; }
 button,input,textarea { font:inherit; }
 button { cursor:pointer; }
 main { min-height:100vh; }
 header { height:78px; max-width:1440px; margin:auto; padding:0 48px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--line); }
 .brand { display:flex; gap:11px; align-items:center; font:800 22px Arial,Helvetica,sans-serif;letter-spacing:-.03em; }
-.brand-mark { width:31px;height:31px;border-radius:50%;display:grid;place-items:center;background:var(--orange);color:white;font:700 18px Arial; }
+.brand-mark { width:34px;height:34px;border-radius:50%;display:block;overflow:hidden;background:var(--orange);box-shadow:0 0 0 2px rgba(var(--accent-rgb),.25); }
+.brand-mark img { width:100%;height:100%;display:block;object-fit:cover;object-position:center 38%; }
 .header-actions { display:flex;align-items:center;gap:18px; }
 .accent-picker { display:flex;align-items:center;gap:8px; }
 .accent-picker>span { margin-right:3px;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.12em;font-weight:800; }
