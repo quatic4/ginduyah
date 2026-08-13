@@ -102,18 +102,14 @@ export default function Home() {
   useEffect(() => {
     const root = document.documentElement;
     let targetX = window.innerWidth * .82; let targetY = 0;
-    let glowX = targetX; let glowY = targetY; let trailX = targetX; let trailY = targetY; let tailX = targetX; let tailY = targetY;
+    let glowX = targetX; let glowY = targetY;
     let animationFrame = 0;
     const followGlow = (event: PointerEvent) => {
       targetX = event.clientX; targetY = event.clientY;
     };
     const animateGlow = () => {
       glowX += (targetX - glowX) * .16; glowY += (targetY - glowY) * .16;
-      trailX += (glowX - trailX) * .055; trailY += (glowY - trailY) * .055;
-      tailX += (trailX - tailX) * .028; tailY += (trailY - tailY) * .028;
       root.style.setProperty("--glow-x", `${glowX}px`); root.style.setProperty("--glow-y", `${glowY}px`);
-      root.style.setProperty("--trail-x", `${trailX}px`); root.style.setProperty("--trail-y", `${trailY}px`);
-      root.style.setProperty("--tail-x", `${tailX}px`); root.style.setProperty("--tail-y", `${tailY}px`);
       animationFrame = requestAnimationFrame(animateGlow);
     };
     window.addEventListener("pointermove", followGlow, { passive: true });
@@ -323,7 +319,7 @@ export default function Home() {
   function resetCard() { setStory(starter); setOriginalPost(starter); setSelectedCommentIds([]); setReplyContext(null); }
 
   return <main>
-    <header><div className="brand"><span className="brand-mark">g</span><span>ginduyah</span></div><div className="header-actions"><div className="accent-picker" aria-label="Theme color"><span>Theme</span>{accentColors.map((color)=><button key={color.name} className={accent.name===color.name?"active":""} style={{background:color.hex}} onClick={()=>setAccent(color)} aria-label={`${color.name} theme`} title={color.name}/>)}</div><a className="youtube-link" href="https://youtube.com/@ginduyah/" target="_blank" rel="noreferrer" aria-label="Visit Ginduyah on YouTube"><span>▶</span> YouTube</a></div></header>
+    <header><div className="brand"><span className="brand-mark"><img src="/ginduyah-avatar.png" alt="Ginduyah"/></span><span>ginduyah</span></div><div className="header-actions"><div className="accent-picker" aria-label="Theme color"><span>Theme</span>{accentColors.map((color)=><button key={color.name} className={accent.name===color.name?"active":""} style={{background:color.hex}} onClick={()=>setAccent(color)} aria-label={`${color.name} theme`} title={color.name}/>)}</div><a className="youtube-link" href="https://youtube.com/@ginduyah/" target="_blank" rel="noreferrer" aria-label="Visit Ginduyah on YouTube"><span>▶</span> YouTube</a></div></header>
     <section className="intro"><p className="eyebrow">REDDIT → SHORT-FORM READY</p><h1>Turn any story into a<br/><em>scroll-stopping card.</em></h1><p className="lede">Paste a Reddit post, tune the canvas, and download a crisp PNG for Shorts, TikTok, or Reels.</p></section>
     <section className="workspace">
       <div className="controls">
