@@ -11,6 +11,13 @@ type YouTubeChannel = {
 
 export const revalidate = 3600;
 
+function formatViews(value: number) {
+  return new Intl.NumberFormat("en-US", {
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(value);
+}
+
 export async function GET() {
   const apiKey = process.env.YOUTUBE_API_KEY;
   if (!apiKey) return Response.json({ error: "YouTube API is not configured." }, { status: 503 });
@@ -35,7 +42,7 @@ export async function GET() {
         name: item.snippet?.title || channel.handle.slice(1),
         handle: channel.handle,
         url: channel.url,
-        views: viewCount ? `${viewCount.toLocaleString("en-US")} views` : "No public views yet",
+        views: viewCount ? `${formatViews(viewCount)} views` : "No public views yet",
         image: thumbnails.high?.url || thumbnails.medium?.url || thumbnails.default?.url || "",
       };
     }));
