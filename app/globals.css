@@ -15,6 +15,7 @@ header { height:78px; max-width:1440px; margin:auto; padding:0 48px; display:fle
 .accent-picker button { width:19px;height:19px;padding:0;border:2px solid transparent;border-radius:50%;box-shadow:0 0 0 1px #3a3e44;transition:transform .15s,box-shadow .15s; }
 .accent-picker button:hover { transform:scale(1.16); }
 .accent-picker button.active { box-shadow:0 0 0 2px #0b0c0e,0 0 0 4px var(--orange);transform:scale(1.08); }
+.accent-picker button.rgb-swatch { width:31px;border-radius:999px;background:linear-gradient(90deg,#ff3b4f,#f2bb35,#39c978,#20c7d9,#438cff,#9b6cff,#f04fbd);color:#fff;font-size:7px;font-weight:900;letter-spacing:.04em;text-shadow:0 1px 2px #000; }
 .youtube-link { display:flex;align-items:center;gap:7px;padding:8px 12px;border:1px solid #363a40;border-radius:4px;color:#f2f3f4;text-decoration:none;font-size:11px;font-weight:800;letter-spacing:.04em;transition:border-color .15s,background .15s; }
 .youtube-link span { display:grid;place-items:center;width:20px;height:15px;border-radius:4px;background:#ff0033;color:white;font-size:8px;padding-left:1px; }
 .youtube-link:hover { border-color:var(--orange);background:rgba(var(--accent-rgb),.08); }
@@ -115,6 +116,6 @@ footer strong { color:var(--ink); }
 .channel-card b { margin-left:auto;width:28px;height:20px;border-radius:6px;display:grid;place-items:center;background:#ff0033;color:#fff;font-size:9px;padding-left:2px; }
 @keyframes channel-scroll { to { transform:translateX(calc(-1 * var(--channel-cycle))); } }
 @media(max-width:850px){ header,.intro,.workspace,footer{padding-left:22px;padding-right:22px}.intro{padding-top:48px}.workspace{display:block}.controls{border-right:0;padding-right:0}.preview-panel{position:static;padding-left:0;border-top:1px solid var(--line)}.canvas-wrap{height:500px}footer{gap:20px;flex-direction:column}.privacy{display:none}.accent-picker>span{display:none} }
-@media(max-width:600px){.accent-picker{gap:5px}.accent-picker button{width:15px;height:15px}.brand{font-size:19px}.header-actions{gap:10px}.youtube-link{padding:7px}.youtube-link{font-size:0}.youtube-link span{font-size:8px}}
+@media(max-width:600px){.accent-picker{gap:5px}.accent-picker button{width:15px;height:15px}.accent-picker button.rgb-swatch{width:27px;font-size:6px}.brand{font-size:19px}.header-actions{gap:10px}.youtube-link{padding:7px}.youtube-link{font-size:0}.youtube-link span{font-size:8px}}
 @media(max-width:600px){.channel-showcase{padding:46px 0}.channel-heading{padding:0 22px}.channel-marquee{width:calc(100% - 28px)}.channel-card{width:260px}.channel-track{--channel-cycle:834px;animation-duration:20s}}
 @media(max-width:520px){ .url-row{grid-template-columns:1fr 1fr}.url-row input{grid-column:1/-1}.url-row input,.fetch,.copy-json{border-radius:3px;border:1px solid #34383e}.fetch,.copy-json{padding:13px}.two{grid-template-columns:1fr}.presets{grid-template-columns:1fr}.canvas-wrap{height:430px} }
