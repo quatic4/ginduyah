@@ -98,6 +98,7 @@ export default function Home() {
   const [selectedCommentIds, setSelectedCommentIds] = useState<string[]>([]);
   const [replyContext, setReplyContext] = useState<{ depth: number; postAuthor: string } | null>(null);
   const [accent, setAccent] = useState(accentColors[0]);
+  const [rgbMode, setRgbMode] = useState(false);
   const [channelCards, setChannelCards] = useState(featuredChannels);
 
   const update = (key: keyof Story, value: string | number) => {
@@ -124,9 +125,29 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    document.documentElement.style.setProperty("--orange", accent.hex);
-    document.documentElement.style.setProperty("--accent-rgb", accent.rgb);
-  }, [accent]);
+    const root = document.documentElement;
+    if (!rgbMode) {
+      root.style.setProperty("--orange", accent.hex);
+      root.style.setProperty("--accent-rgb", accent.rgb);
+      return;
+    }
+
+    let frame = 0;
+    const animateRgb = (time: number) => {
+      const hue = (time / 35) % 360;
+      const lightness = .6; const saturation = .92;
+      const a = saturation * Math.min(lightness, 1 - lightness);
+      const channel = (offset: number) => {
+        const k = (offset + hue / 30) % 12;
+        return Math.round(255 * (lightness - a * Math.max(-1, Math.min(k - 3, 9 - k, 1))));
+      };
+      root.style.setProperty("--orange", `hsl(${hue} 92% 60%)`);
+      root.style.setProperty("--accent-rgb", `${channel(0)},${channel(8)},${channel(4)}`);
+      frame = requestAnimationFrame(animateRgb);
+    };
+    frame = requestAnimationFrame(animateRgb);
+    return () => cancelAnimationFrame(frame);
+  }, [accent, rgbMode]);
 
   useEffect(() => {
     let active = true;
@@ -324,7 +345,7 @@ export default function Home() {
   function resetCard() { setStory(starter); setOriginalPost(starter); setSelectedCommentIds([]); setReplyContext(null); }
 
   return <main>
-    <header><div className="brand"><span className="brand-mark"><img src="/ginduyah-avatar.png" alt="Ginduyah"/></span><span>ginduyah</span></div><div className="header-actions"><div className="accent-picker" aria-label="Theme color"><span>Theme</span>{accentColors.map((color)=><button key={color.name} className={accent.name===color.name?"active":""} style={{background:color.hex}} onClick={()=>setAccent(color)} aria-label={`${color.name} theme`} title={color.name}/>)}</div><a className="youtube-link" href="https://youtube.com/@ginduyah/" target="_blank" rel="noreferrer" aria-label="Visit Ginduyah on YouTube"><span>▶</span> YouTube</a></div></header>
+    <header><div className="brand"><span className="brand-mark"><img src="/ginduyah-avatar.png" alt="Ginduyah"/></span><span>ginduyah</span></div><div className="header-actions"><div className="accent-picker" aria-label="Theme color"><span>Theme</span>{accentColors.map((color)=><button key={color.name} className={!rgbMode&&accent.name===color.name?"active":""} style={{background:color.hex}} onClick={()=>{setRgbMode(false);setAccent(color)}} aria-label={`${color.name} theme`} title={color.name}/>)}<button className={`rgb-swatch ${rgbMode?"active":""}`} onClick={()=>setRgbMode(true)} aria-label="Animated RGB theme" title="RGB theme">RGB</button></div><a className="youtube-link" href="https://youtube.com/@ginduyah/" target="_blank" rel="noreferrer" aria-label="Visit Ginduyah on YouTube"><span>▶</span> YouTube</a></div></header>
     <section className="intro"><p className="eyebrow">REDDIT → SHORT-FORM READY</p><h1>Turn any story into a<br/><em>scroll-stopping card.</em></h1><p className="lede">Paste a Reddit post, tune the canvas, and download a crisp PNG for Shorts, TikTok, or Reels.</p></section>
     <section className="workspace">
       <div className="controls">
