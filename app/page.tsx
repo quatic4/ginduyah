@@ -83,6 +83,7 @@ export default function Home() {
   const [replyAvatarImage, setReplyAvatarImage] = useState<HTMLImageElement | null>(null);
   const [status, setStatus] = useState("Paste a Reddit link, or edit the story manually.");
   const [loading, setLoading] = useState(false);
+  const [copyingJson, setCopyingJson] = useState(false);
   const [showFallback, setShowFallback] = useState(false);
   const [redditJson, setRedditJson] = useState("");
   const [includeReplies, setIncludeReplies] = useState(false);
@@ -259,6 +260,18 @@ export default function Home() {
     finally { setLoading(false); }
   }
 
+  async function copyJson() {
+    if (!/^https?:\/\/(www\.|old\.)?reddit\.com\//i.test(url) && !/^https?:\/\/redd\.it\//i.test(url)) { setStatus("Enter a valid Reddit post URL first."); return; }
+    setCopyingJson(true); setStatus("Getting the complete Reddit JSON…");
+    try {
+      const response = await fetch(`/api/reddit?raw=1&url=${encodeURIComponent(url)}`); const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "Reddit request failed");
+      const text = JSON.stringify(payload, null, 2); await navigator.clipboard.writeText(text); setRedditJson(text); setShowFallback(true);
+      setStatus("JSON copied to your clipboard and added to the import box below.");
+    } catch (error) { setShowFallback(true); setStatus(error instanceof Error ? error.message : "Reddit blocked the JSON request. Try the manual fallback below."); }
+    finally { setCopyingJson(false); }
+  }
+
   function importJson() {
     try {
       const payload = JSON.parse(redditJson);
@@ -305,9 +318,9 @@ export default function Home() {
       <div className="controls">
         <div className="step"><span>01</span><h2>Bring in your story</h2></div>
         <label className="label" htmlFor="reddit-url">Reddit post URL</label>
-        <div className="url-row"><input id="reddit-url" value={url} onChange={(e)=>setUrl(e.target.value)} onKeyDown={(e)=>e.key==="Enter"&&fetchPost()} placeholder="https://www.reddit.com/r/.../comments/..."/><button className="fetch" onClick={fetchPost} disabled={loading}>{loading ? "Loading…" : "Fetch post"}</button></div>
+        <div className="url-row"><input id="reddit-url" value={url} onChange={(e)=>setUrl(e.target.value)} onKeyDown={(e)=>e.key==="Enter"&&fetchPost()} placeholder="https://www.reddit.com/r/.../comments/..."/><button className="copy-json" onClick={copyJson} disabled={copyingJson || loading}>{copyingJson ? "COPYING…" : "COPY JSON"}</button><button className="fetch" onClick={fetchPost} disabled={loading || copyingJson}>{loading ? "Loading…" : "Fetch post"}</button></div>
         <p className="status">{status}</p>
-        {showFallback && <div className="fallback"><strong>Quick fallback</strong><ol><li><a href={jsonUrl()} target="_blank" rel="noreferrer">Open this post as Reddit JSON ↗</a></li><li>Select all and copy the page contents.</li><li>Paste it below and import.</li></ol><textarea aria-label="Reddit JSON" rows={5} value={redditJson} onChange={(e)=>setRedditJson(e.target.value)} placeholder="Paste the copied Reddit JSON here…"/><button onClick={importJson} disabled={!redditJson.trim()}>Import copied post</button></div>}
+        {showFallback && <div className="fallback"><strong>Quick fallback</strong><p>Use Copy JSON above to fill this box automatically. If Reddit blocks it, open the manual JSON page instead.</p><a href={jsonUrl()} target="_blank" rel="noreferrer">Open manual Reddit JSON ↗</a><textarea aria-label="Reddit JSON" rows={5} value={redditJson} onChange={(e)=>setRedditJson(e.target.value)} placeholder="Reddit JSON will appear here…"/><button onClick={importJson} disabled={!redditJson.trim()}>Import copied post</button></div>}
         <div className="divider"/>
         <div className="step"><span>02</span><h2>Fine-tune the copy</h2></div>
         <div className="two"><label>Subreddit<input value={story.subreddit} onChange={(e)=>update("subreddit", e.target.value)}/></label><label>Username<input value={story.author} onChange={(e)=>update("author", e.target.value)}/></label></div>
