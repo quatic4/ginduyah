@@ -77,7 +77,7 @@ export default function Home() {
   const [url, setUrl] = useState("");
   const [preset, setPreset] = useState<SizePreset>("short");
   const [width, setWidth] = useState(1080); const [height, setHeight] = useState(1920);
-  const [transparent, setTransparent] = useState(false); const [bg, setBg] = useState("#0f1115");
+  const [transparent, setTransparent] = useState(true); const [bg, setBg] = useState("#0f1115");
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [avatarImage, setAvatarImage] = useState<HTMLImageElement | null>(null);
   const [replyAvatarImage, setReplyAvatarImage] = useState<HTMLImageElement | null>(null);
@@ -99,12 +99,22 @@ export default function Home() {
 
   useEffect(() => {
     const root = document.documentElement;
+    let targetX = window.innerWidth * .82; let targetY = 0;
+    let glowX = targetX; let glowY = targetY; let trailX = targetX; let trailY = targetY;
+    let animationFrame = 0;
     const followGlow = (event: PointerEvent) => {
-      root.style.setProperty("--glow-x", `${event.pageX}px`);
-      root.style.setProperty("--glow-y", `${event.pageY}px`);
+      targetX = event.clientX; targetY = event.clientY;
+    };
+    const animateGlow = () => {
+      glowX += (targetX - glowX) * .16; glowY += (targetY - glowY) * .16;
+      trailX += (glowX - trailX) * .055; trailY += (glowY - trailY) * .055;
+      root.style.setProperty("--glow-x", `${glowX}px`); root.style.setProperty("--glow-y", `${glowY}px`);
+      root.style.setProperty("--trail-x", `${trailX}px`); root.style.setProperty("--trail-y", `${trailY}px`);
+      animationFrame = requestAnimationFrame(animateGlow);
     };
     window.addEventListener("pointermove", followGlow, { passive: true });
-    return () => window.removeEventListener("pointermove", followGlow);
+    animationFrame = requestAnimationFrame(animateGlow);
+    return () => { window.removeEventListener("pointermove", followGlow); cancelAnimationFrame(animationFrame); };
   }, []);
 
   useEffect(() => {
