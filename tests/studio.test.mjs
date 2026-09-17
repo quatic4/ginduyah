@@ -17,6 +17,7 @@ await db.exec(`
   grant execute on function auth.uid() to authenticated, anon;
 `);
 await db.exec(await readFile(new URL('../supabase/migrations/202609170001_team_studio.sql', import.meta.url), 'utf8'));
+await db.exec(await readFile(new URL('../supabase/migrations/20260917214744_shared_studio_without_accounts.sql', import.meta.url), 'utf8'));
 const alice = '10000000-0000-4000-8000-000000000001';
 const bob = '10000000-0000-4000-8000-000000000002';
 const outsider = '10000000-0000-4000-8000-000000000003';

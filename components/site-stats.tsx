@@ -11,7 +11,7 @@ const count = (value: number | null | undefined) => value === null || value === 
 export function SiteStats() {
   const [scope, setScope] = useState<"featured" | "team">("featured");
   const [team, setTeam] = useState<{ handle: string; name: string }[]>([]);
-  const [teamStatus, setTeamStatus] = useState("Sign in to Team studio to include your own channels.");
+  const [teamStatus, setTeamStatus] = useState("Connect shared storage to include the team’s channels.");
   const [stats, setStats] = useState<ChannelStats[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -22,26 +22,24 @@ export function SiteStats() {
     const client = getStudioClient();
     if (!client) return;
     let active = true;
+    let pending = false;
     const load = async () => {
-      const session = await client.auth.getSession();
-      if (!session.data.session || !active) return;
-      const result = await client.rpc("studio_list_workspaces");
-      if (!active) return;
-      if (result.error) { setTeamStatus("Couldn't load your team’s channels. Open Team studio and try again."); return; }
-      const teams = result.data as { id: string; name: string }[];
-      let saved = "";
-      try { saved = localStorage.getItem(`ginduyah-team-${session.data.session.user.id}`) || ""; } catch { /* Optional preference. */ }
-      const selected = teams.find(t => t.id === saved) || teams[0];
-      if (!selected) { setTeamStatus("Create or join a team in Team studio first."); return; }
-      const snapshot = await client.rpc("studio_snapshot", { team_id: selected.id });
-      if (!active) return;
-      if (snapshot.error) { setTeamStatus("Couldn't load your team’s channels. Try again from Team studio."); return; }
-      const channels = (snapshot.data as Snapshot).channels;
-      setTeam(channels.map(c => ({ handle: c.handle, name: c.name })));
-      setTeamStatus(`${selected.name} · add YouTube handles in Channel settings.`);
+      if (pending) return;
+      pending = true;
+      try {
+        const snapshot = await client.rpc("studio_shared_snapshot").abortSignal(AbortSignal.timeout(15000));
+        if (!active) return;
+        if (snapshot.error) throw snapshot.error;
+        const channels = (snapshot.data as Snapshot).channels;
+        setTeam(channels.map(c => ({ handle: c.handle, name: c.name })));
+        setTeamStatus(`${(snapshot.data as Snapshot).workspace.name} · add YouTube handles in Channel settings.`);
+      } catch { if (active) setTeamStatus("Couldn't load the team’s latest channels. Try again from Team studio."); }
+      finally { pending = false; }
     };
     void load();
-    return () => { active = false; };
+    const timer = window.setInterval(() => { if (document.visibilityState === "visible") void load(); }, 5000);
+    window.addEventListener("focus", load);
+    return () => { active = false; window.clearInterval(timer); window.removeEventListener("focus", load); };
   }, []);
   const loadStats = useCallback(async (signal?: AbortSignal) => {
     const currentRequest = ++requestId.current;
@@ -68,7 +66,7 @@ export function SiteStats() {
       const stat = stats.find(s => s.handle === channel.handle);
       return <article className="stats-card" key={channel.handle || channel.name}><div className="stats-channel-heading">{stat?.image ? <img src={stat.image} alt="" width={52} height={52} /> : <span className="stats-avatar">{channel.name[0].toUpperCase()}</span>}<div><h2>{stat?.name || channel.name}</h2>{channel.handle && <a href={`https://www.youtube.com/${encodeURIComponent(channel.handle)}`} target="_blank" rel="noopener noreferrer">{channel.handle} ↗</a>}</div></div>{!channel.handle ? <p className="stat-unavailable">Add this channel’s YouTube handle in Channel settings to load its stats.</p> : <><div className="stat-main"><span>Total views</span><strong>{loading ? "…" : count(stat?.views)}</strong></div><div className="stat-pair"><div><span>Subscribers</span><strong>{loading ? "…" : stat && !stat.error && stat.subscribers === null ? "Hidden" : count(stat?.subscribers)}</strong></div><div><span>Public videos</span><strong>{loading ? "…" : count(stat?.videos)}</strong></div></div>{stat?.error && <p className="stat-unavailable">{stat.error}</p>}{!loading && !stat && <p className="stat-unavailable">{error ? "Live data unavailable" : "No data loaded"}</p>}</>}</article>;
     })}</div>
-    {scope === "team" && team.length === 0 && <div className="empty-state"><h3>Your channels will appear here.</h3><p>Create or join your workspace and add a YouTube handle for each channel.</p></div>}
+    {scope === "team" && team.length === 0 && <div className="empty-state"><h3>Your channels will appear here.</h3><p>Open Team studio and add a YouTube handle for each channel.</p></div>}
     {checkedAt && <p className="stats-checked">Last checked {new Intl.DateTimeFormat("en-CA", { timeZone: "America/Toronto", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(checkedAt))} · Toronto time</p>}
     <section className="website-stats"><div><p className="studio-eyebrow">WEBSITE TRAFFIC</p><h2>Visitors, page views & performance</h2><p>The site already sends traffic and speed data to Vercel. Those private reports are available to the site owner.</p></div><div><a className="secondary" href="https://vercel.com/444-6ee9/ginduyah/analytics" target="_blank" rel="noopener noreferrer">Open website analytics ↗</a><a className="text-button" href="https://vercel.com/444-6ee9/ginduyah/speed-insights" target="_blank" rel="noopener noreferrer">View speed insights ↗</a></div></section>
   </>;

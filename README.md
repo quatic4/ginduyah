@@ -14,3 +14,12 @@ A web-based Reddit story card generator that turns Reddit posts, comments, and r
 Import this repository into Vercel as a Next.js project. Vercel will install the dependencies and build the site automatically.
 
 Deployed with Vercel.
+
+## Shared team studio
+
+`/studio` opens one shared production board without accounts. Choose your name,
+manage the roster under **Team & credits**, and track submissions and stage credits.
+Anyone with the site link can edit. Supabase stores team data centrally; only the
+selected name is remembered on your device. See [the setup guide](docs/team-studio-setup.md).
+
+`/stats` shows public YouTube channel totals and links to the owner's website analytics.

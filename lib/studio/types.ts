@@ -6,15 +6,15 @@ export const STAGES: { id: Stage; label: string }[] = [
   { id: "edit", label: "Edit" },
   { id: "scheduled", label: "Scheduled" },
 ];
-export type Workspace = { id: string; name: string; owner_id: string; invite_code: string | null };
-export type Member = { user_id: string; display_name: string; active: boolean };
-export type Channel = { id: string; workspace_id: string; name: string; handle: string; comic_goal: number; post_goal: number };
-export type DailyGoal = { channel_id: string; day: string; comic_goal: number; post_goal: number };
+export type Workspace = { id: string; name: string; revision: number };
+export type Member = { user_id: string; display_name: string; active: boolean; version: number };
+export type Channel = { id: string; workspace_id: string; name: string; handle: string; comic_goal: number; post_goal: number; version: number };
+export type DailyGoal = { channel_id: string; day: string; comic_goal: number; post_goal: number; version: number };
 export type Item = { id: string; channel_id: string; due_date: string; title: string; content_type: ContentType; link: string; notes: string; submitted_by: string; created_at: string; version: number };
 export type Step = { item_id: string; stage: Stage; assigned_to: string | null; completed_by: string | null; completed_at: string | null; version: number };
 export type Activity = { id: string; channel_id: string | null; item_id: string | null; actor_id: string; actor_name: string; action: string; title: string; stage: Stage | null; created_at: string };
 export type Snapshot = { workspace: Workspace; channels: Channel[]; members: Member[]; goals: DailyGoal[]; items: Item[]; steps: Step[]; activity: Activity[] };
-export type Operation = "add_item" | "edit_item" | "delete_item" | "set_step" | "add_channel" | "edit_channel" | "set_goal" | "rotate_invite" | "remove_member" | "restore_member";
+export type Operation = "add_item" | "edit_item" | "delete_item" | "set_step" | "add_channel" | "edit_channel" | "set_goal" | "add_member" | "edit_member" | "remove_member" | "restore_member";
 
 export function torontoDate(date = new Date()) {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Toronto", year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
