@@ -1,0 +1,29 @@
+.stats-page { max-width:1320px; margin:auto; padding:42px 42px 70px; min-height:calc(100vh - 136px); }
+.stats-page>.studio-eyebrow { margin-bottom:18px; }
+.stats-page .studio-title h1 { max-width:760px; }
+.stats-toolbar { display:flex; justify-content:space-between; gap:20px; align-items:center; margin:35px 0 25px; }
+.stats-toolbar>span { font-size:12px; color:#8391a6; }
+.stats-team-note { margin-bottom:23px!important; font-size:14px; }
+.stats-team-note a { color:#ffaf88; }
+.stats-loading { margin-bottom:20px!important; }
+.stats-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:20px; }
+.stats-card { border:1px solid #353a45; border-radius:14px; background:linear-gradient(140deg,#20232b,#14181f); padding:26px; }
+.stats-channel-heading { display:flex; gap:15px; align-items:center; }
+.stats-channel-heading img, .stats-avatar { width:52px; height:52px; flex-shrink:0; border-radius:50%; object-fit:cover; }
+.stats-avatar { display:grid; place-items:center; color:#ffb997; background:#473124; font-size:23px; font-weight:700; }
+.stats-channel-heading h2 { font-size:20px; overflow-wrap:anywhere; }
+.stats-channel-heading a { color:#909caf; font-size:13px; text-decoration:none; }
+.stat-main { margin:28px 0 20px; }
+.stat-main>span, .stat-pair span { color:#9ba6b7; font-size:13px; display:block; }
+.stat-main strong { font-size:clamp(25px,2.7vw,38px); letter-spacing:-.04em; display:block; margin-top:8px; overflow-wrap:anywhere; }
+.stat-pair { display:grid; grid-template-columns:1fr 1fr; gap:16px; border-top:1px solid #343b47; padding-top:18px; }
+.stat-pair strong { font-size:20px; display:block; margin-top:5px; }
+.stat-unavailable { margin-top:19px!important; font-size:13px; color:#ac9c91!important; }
+.stats-checked { font-size:12px; margin-top:20px!important; color:#7a899f!important; }
+.website-stats { display:flex; justify-content:space-between; align-items:center; gap:28px; border-top:1px solid #313846; margin-top:45px; padding-top:30px; }
+.website-stats h2 { margin:12px 0; }
+.website-stats p:not(.studio-eyebrow) { font-size:14px; max-width:570px; }
+.website-stats>div:last-child { display:grid; gap:8px; flex-shrink:0; }
+.website-stats a { text-decoration:none; }
+@media(max-width:950px){.stats-page{padding:32px 24px 50px}.stats-grid{grid-template-columns:1fr 1fr}.stats-toolbar{align-items:flex-start;flex-direction:column}.website-stats{align-items:flex-start;flex-direction:column}}
+@media(max-width:600px){.stats-grid{grid-template-columns:1fr}.stats-page{padding:30px 18px 45px}.stats-card{padding:23px}.stats-page .studio-title>.secondary{margin-top:20px}}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { SiteNav } from "@/components/site-nav";
 
 type Story = { title: string; body: string; author: string; subreddit: string; score: number; comments: number };
 type RedditComment = { id: string; author: string; body: string; score: number; depth: number; selected: boolean };
@@ -347,6 +348,7 @@ export default function Home() {
 
   return <main>
     <header><div className="brand"><span className="brand-mark"><img src="/ginduyah-avatar.png" alt="Ginduyah"/></span><span>ginduyah</span></div><div className="header-actions"><div className={`theme-menu ${themeMenuOpen?"open":""}`}><button className="theme-trigger" onClick={()=>setThemeMenuOpen((open)=>!open)} aria-haspopup="listbox" aria-expanded={themeMenuOpen}><span className={rgbMode?"theme-dot rgb-dot":"theme-dot"} style={rgbMode?undefined:{background:accent.hex}}/><span>THEME</span><strong>{rgbMode?"RGB":accent.name}</strong><i>⌄</i></button>{themeMenuOpen&&<div className="theme-options" role="listbox" aria-label="Choose theme">{accentColors.map((color)=><button key={color.name} role="option" aria-selected={!rgbMode&&accent.name===color.name} className={!rgbMode&&accent.name===color.name?"selected":""} onClick={()=>{setRgbMode(false);setAccent(color);setThemeMenuOpen(false)}}><span className="theme-dot" style={{background:color.hex}}/><span>{color.name}</span><b>✓</b></button>)}<button role="option" aria-selected={rgbMode} className={rgbMode?"selected":""} onClick={()=>{setRgbMode(true);setThemeMenuOpen(false)}}><span className="theme-dot rgb-dot"/><span>RGB <small>Animated</small></span><b>✓</b></button></div>}</div><a className="youtube-link" href="https://youtube.com/@ginduyah/" target="_blank" rel="noreferrer" aria-label="Visit Ginduyah on YouTube"><span>▶</span> YouTube</a></div></header>
+    <SiteNav />
     <section className="intro"><p className="eyebrow">REDDIT → SHORT-FORM READY</p><h1>Turn any story into a<br/><em>scroll-stopping card.</em></h1><p className="lede">Paste a Reddit post, tune the canvas, and download a crisp PNG for Shorts, TikTok, or Reels.</p></section>
     <section className="workspace">
       <div className="controls">

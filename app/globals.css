@@ -1,4 +1,11 @@
 :root { --ink:#f5f6f7; --muted:#94999f; --paper:#0b0c0e; --panel:#15171a; --orange:#ff541f; --accent-rgb:255,84,31; --line:#292c31; --glow-x:82vw; --glow-y:0px; }
+.site-nav { max-width:1440px; margin:auto; display:flex; gap:8px; padding:12px 48px; border-bottom:1px solid #292c31; }
+.site-nav a { text-decoration:none; color:#a6adba; padding:8px 14px; border-radius:7px; font-size:14px; font-weight:600; }
+.site-nav a[aria-current="page"] { background:#302219; color:#ffae85; }
+.site-nav a:hover { color:#fff; background:#252931; }
+.site-nav a:focus-visible { outline:2px solid #ffae85; outline-offset:3px; }
+.studio-header-note { color:#929ba9; font-size:13px; }
+@media(max-width:600px){.site-nav{padding:10px 14px;gap:2px}.site-nav a{padding:8px 11px;font-size:13px}.studio-header-note{display:none}}
 * { box-sizing: border-box; }
 html { background: var(--paper); }
 body { margin:0; color:var(--ink); background:radial-gradient(ellipse 235px 205px at var(--glow-x) var(--glow-y),rgba(var(--accent-rgb),.24) 0,rgba(var(--accent-rgb),.085) 40%,transparent 76%),var(--paper); background-attachment:fixed; font-family:Arial,Helvetica,sans-serif; }
