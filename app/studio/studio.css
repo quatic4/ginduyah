@@ -222,3 +222,13 @@
 .modal-identity { display:block; margin-bottom:20px!important; }
 .entry-actions { display:flex; flex-wrap:wrap; gap:12px; margin:24px 0; }
 @media (max-width:700px) { .identity-bar { gap:10px; }.identity-bar label { width:100%; }.identity-bar select { flex:1; min-width:0; width:auto; }.identity-bar>span { flex-basis:65%; }.roster-actions { gap:18px; } }
+
+.pin-card { max-width:520px; }
+.pin-icon { display:inline-grid;place-items:center;width:48px;height:48px;border-radius:14px;background:#322218;color:#ffaa7b;font-size:26px;margin-bottom:20px; }
+.pin-form { display:grid;gap:14px;margin:28px 0; }
+.pin-form label { font-weight:600;font-size:14px; }
+.pin-form input { width:100%;border:1px solid #444b59;border-radius:10px;padding:14px 16px;background:#11151d;color:#f1f2f6;font-size:26px;letter-spacing:.25em;box-sizing:border-box; }
+.pin-form input:focus-visible { outline:2px solid #ffaa7b;outline-offset:3px; }
+.pin-form .studio-error,.pin-form .detail-hint { margin:0; }
+.pin-form .primary { width:100%;min-height:48px; }
+.pin-card .detail-hint { font-size:14px; }

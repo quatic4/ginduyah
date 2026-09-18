@@ -17,9 +17,9 @@ Deployed with Vercel.
 
 ## Shared team studio
 
-`/studio` opens one shared production board without accounts. Choose your name,
-manage the roster under **Team & credits**, and track submissions and stage credits.
-Anyone with the site link can edit. Supabase stores team data centrally; only the
-selected name is remembered on your device. See [the setup guide](docs/team-studio-setup.md).
+`/studio` opens one shared production board using a team PIN, without accounts.
+Choose your name, manage the roster under **Team & credits**, and track submissions
+and stage credits. Supabase stores team data centrally and checks each studio request.
+See [the setup guide](docs/team-studio-setup.md), including the required PIN activation.
 
-`/stats` shows public YouTube channel totals and links to the owner's website analytics.
+`/stats` and the homepage show only **@ginduyah** and **@gleebyreads**.

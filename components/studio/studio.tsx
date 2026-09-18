@@ -4,6 +4,7 @@ import { useState } from "react";
 import { StudioDialog } from "./dialog";
 import { ChannelForm, GoalForm, ItemForm, MemberForm } from "./forms";
 import { useStudio } from "./use-studio";
+import { PinPanel } from "./pin-panel";
 import { STAGES, countsFor, dayLabel, goalFor, isFinished, safeLink, shiftDate, torontoDate, weekDays, type Channel, type ContentType, type Item, type Operation, type Snapshot, type Step, type Member } from "@/lib/studio/types";
 
 type Modal = { kind: "add"; type: ContentType } | { kind: "details" | "edit"; id: string } | { kind: "goals" | "channel" | "new-channel" | "add-member" } | { kind: "edit-member"; member: Member } | null;
@@ -25,7 +26,8 @@ export function Studio() {
     if (await state.mutate(operation, payload)) { if (close) closeModal(); }
   }
   if (state.loading && !data) return <div className="studio-loading" role="status">Loading the shared board…</div>;
-  if (!data || !channel) return <div className="setup-card"><p className="studio-eyebrow">TEAM STUDIO</p><h1>One board for the crew.</h1><p>{state.configured ? "The shared board couldn't be loaded. Check your connection, or finish the database setup if this is the first visit." : "Shared storage needs its one-time connection before changes can be saved for everyone."}</p><div className="entry-actions">{state.configured && <button className="primary" onClick={() => void state.refresh()}>Try again</button>}<button className="secondary" onClick={state.startPreview}>Try with example content</button></div><p className="detail-hint">No account needed. The example board is temporary and does not save.</p></div>;
+  if (!state.unlocked) return <PinPanel configured={state.configured} busy={busy} error={state.error} retryAt={state.retryAt} onUnlock={state.unlock} />;
+  if (!data || !channel) return <div className="setup-card"><p className="studio-eyebrow">TEAM STUDIO</p><h1>Let’s reconnect.</h1><p>The board couldn't be loaded. Check your connection and try again.</p><div className="entry-actions"><button className="primary" onClick={() => void state.refresh()}>Try again</button><button className="secondary" onClick={() => void state.lock()}>Lock studio</button></div></div>;
 
   const comics = countsFor(data, channel, day, "comic");
   const posts = countsFor(data, channel, day, "internet_post");
@@ -39,7 +41,6 @@ export function Studio() {
   const days = weekDays(day);
 
   return <>
-    {state.preview && <div className="preview-banner"><span><strong>Preview only.</strong> Example content. Changes disappear when you leave.</span><button onClick={state.endPreview}>Exit preview</button></div>}
     <div className="studio-shell">
       <aside className="studio-sidebar" aria-label="Workspace">
         <div className="sidebar-heading"><span className="studio-eyebrow">SHARED WORKSPACE</span><strong>{data.workspace.name}</strong></div>
@@ -47,13 +48,13 @@ export function Studio() {
         <div className="channel-switcher">{data.channels.map((c, index) => <button className={c.id === channel.id ? "selected" : ""} key={c.id} onClick={() => { setChannelId(c.id); setFilter("all"); setModal(null); }} aria-pressed={c.id === channel.id}><span className={`channel-initial channel-color-${index % 3}`}>{c.name.slice(0, 1).toUpperCase()}</span><span><strong>{c.name}</strong><small>{c.comic_goal + c.post_goal} uploads / day by default</small></span>{c.id === channel.id && <i aria-hidden="true">›</i>}</button>)}</div>
         <div className="sidebar-divider" />
         <nav className="studio-tabs" aria-label="Studio views">{([['board', '▦', 'Daily board'], ['team', '◎', 'Team & credits'], ['activity', '≡', 'Activity']] as const).map(([value, icon, label]) => <button key={value} onClick={() => setTab(value)} aria-pressed={tab === value} className={tab === value ? "active" : ""}><span aria-hidden="true">{icon}</span>{label}</button>)}</nav>
-        <div className="sidebar-bottom"><div className="member-identity"><span className="member-avatar">{actorId ? memberName(actorId).slice(0, 1).toUpperCase() : "?"}</span><span><strong>{actorId ? memberName(actorId) : "Choose your name"}</strong><small>No account needed</small></span></div>{state.preview && <button className="text-button" onClick={state.endPreview}>Exit preview</button>}<button className="text-button" onClick={() => openModal({ kind: "new-channel" })}>Add channel</button></div>
+        <div className="sidebar-bottom"><div className="member-identity"><span className="member-avatar">{actorId ? memberName(actorId).slice(0, 1).toUpperCase() : "?"}</span><span><strong>{actorId ? memberName(actorId) : "Choose your name"}</strong><small>No account needed</small></span></div><button className="text-button" onClick={() => { setModal(null); void state.lock(); }}>Lock studio</button><button className="text-button" onClick={() => openModal({ kind: "new-channel" })}>Add channel</button></div>
       </aside>
       <div className="studio-content">
-        <div className="studio-topline"><span className="studio-eyebrow">{channel.name} / {tab === "board" ? "PRODUCTION" : tab === "team" ? "CONTRIBUTIONS" : "HISTORY"}</span><span className="sync-status">{state.preview ? "Example workspace" : state.syncFailed ? "Sync paused" : busy ? "Saving…" : state.lastSync ? "Saved · refreshes every 5s" : "Connecting…"}{!state.preview && <button onClick={() => void state.refresh()} aria-label="Refresh board" disabled={busy}>↻</button>}</span></div>
+        <div className="studio-topline"><span className="studio-eyebrow">{channel.name} / {tab === "board" ? "PRODUCTION" : tab === "team" ? "CONTRIBUTIONS" : "HISTORY"}</span><span className="sync-status">{state.syncFailed ? "Sync paused" : busy ? "Saving…" : state.lastSync ? "Saved · refreshes every 5s" : "Connecting…"}{<button onClick={() => void state.refresh()} aria-label="Refresh board" disabled={busy}>↻</button>}</span></div>
         <div className="studio-title"><div><h1>{tab === "board" ? "Make today count." : tab === "team" ? "Everyone’s part." : "The work, on record."}</h1><p>{tab === "board" ? (total === 0 ? "No uploads planned for this day." : remaining === 0 ? "This day’s targets are covered. Nice work." : `${remaining} more ${remaining === 1 ? "upload" : "uploads"} to finish for this day.`) : tab === "team" ? "Submissions and completed stages, credited to the people behind them." : "A shared history of submissions, changes, and completed work."}</p></div><div className="title-actions"><button className="secondary" onClick={() => openModal({ kind: "channel" })}>Channel settings</button><button className="primary" onClick={() => openModal({ kind: "add", type: "comic" })}><span aria-hidden="true">＋</span> Add submission</button></div></div>
         <div className="identity-bar"><label>Working as<select aria-label="Your name" value={actorId} disabled={busy} onChange={e => state.selectMember(e.target.value)}><option value="">Choose your name</option>{data.members.filter(m => m.active).map(m => <option key={m.user_id} value={m.user_id}>{m.display_name}</option>)}</select></label><span>{actorId ? "Changes and completed work are credited to this name." : "Browse freely. Pick your name before making changes."}</span><button className="text-button" onClick={() => setTab("team")}>Manage team</button></div>
-        {state.syncFailed && !state.preview && <p className="studio-notice" role="status">Updates are paused. Check your connection and refresh; the board may be out of date.</p>}
+        {state.syncFailed && <p className="studio-notice" role="status">Updates are paused. Check your connection and refresh; the board may be out of date.</p>}
         {state.error && !modal && <div className="studio-error" role="alert">{state.error}<button className="text-button" onClick={() => { state.setError(""); void state.refresh(); }}>Refresh</button></div>}
         <div className="calendar-toolbar"><div><button className="icon-button" aria-label="Previous week" onClick={() => setDay(shiftDate(day, -7))}>‹</button><strong>{dayLabel(days[0], { month: "short", day: "numeric" })} – {dayLabel(days[6], { month: "short", day: "numeric", year: "numeric" })}</strong><button className="icon-button" aria-label="Next week" onClick={() => setDay(shiftDate(day, 7))}>›</button></div><div><button className="text-button" onClick={() => setDay(torontoDate())}>Today</button><input aria-label="Choose date" type="date" value={day} onChange={e => { if (e.target.value) setDay(e.target.value); }} /><span>Toronto time</span></div></div>
         {tab === "board" && <>

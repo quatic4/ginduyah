@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { SiteNav } from "@/components/site-nav";
+import { featuredChannels } from "@/lib/channels";
 
 type Story = { title: string; body: string; author: string; subreddit: string; score: number; comments: number };
 type RedditComment = { id: string; author: string; body: string; score: number; depth: number; selected: boolean };
@@ -27,11 +28,7 @@ const accentColors = [
   { name: "Green", hex: "#39c978", rgb: "57,201,120" }, { name: "Yellow", hex: "#f2bb35", rgb: "242,187,53" },
 ];
 
-const featuredChannels = [
-  { name: "Ginduyah", handle: "@ginduyah", url: "https://www.youtube.com/@ginduyah", views: "2M views", image: "https://yt3.googleusercontent.com/AhdFFGGJJblVlnW-XgA4xOhl8F7pTU6L1DKk8slahB-dn4eG5kOKdviv63PvpHFhGXlFZfPLMA=s900-c-k-c0x00ffffff-no-rj" },
-  { name: "Rezaro", handle: "@RezaroReads", url: "https://www.youtube.com/@RezaroReads", views: "884K views", image: "https://yt3.googleusercontent.com/bCwlSwg1EppYymVuojO1oqi4tQbwmoNgoNfYDPUvsJlz69KzDRVXzfKGbMAkibR8Yu38lmCXCw=s900-c-k-c0x00ffffff-no-rj" },
-  { name: "LemurStories", handle: "@LemurStories", url: "https://www.youtube.com/@LemurStories", views: "No public views yet", image: "https://yt3.googleusercontent.com/ECZLBSNHBHpIJ7Wo6EYGG_QChY8X9z-9CIGSUdE7FZN_XjKvzqwt3MVnO3bd7mlSsvzSpUDL=s900-c-k-c0x00ffffff-no-rj" },
-];
+
 
 const avatarColors = ["#ff4500", "#ff3b4f", "#f04fbd", "#9b6cff", "#438cff", "#20c7d9", "#39c978", "#f2a531"];
 
