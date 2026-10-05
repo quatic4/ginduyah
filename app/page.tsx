@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { SiteNav } from "@/components/site-nav";
 import { featuredChannels } from "@/lib/channels";
+import { parseRedditPost, redditJsonUrl, redditUrl, type ImportedPost } from "@/lib/reddit/post";
 
 type Story = { title: string; body: string; author: string; subreddit: string; score: number; comments: number };
 type RedditComment = { id: string; author: string; body: string; score: number; depth: number; selected: boolean };
@@ -101,6 +102,7 @@ export default function Home() {
   const [channelCards, setChannelCards] = useState(featuredChannels);
 
   const update = (key: keyof Story, value: string | number) => {
+    cancelImport();
     setStory((s) => ({ ...s, [key]: value }));
     setOriginalPost((post) => ({ ...post, [key]: value }));
   };
@@ -293,40 +295,35 @@ export default function Home() {
     setPreset(next); if (next !== "custom") { setWidth(presets[next][0]); setHeight(presets[next][1]); }
   }
 
-  async function fetchPost() {
-    if (!/^https?:\/\/(www\.|old\.)?reddit\.com\//i.test(url) && !/^https?:\/\/redd\.it\//i.test(url)) { setStatus("Enter a valid reddit.com or redd.it post URL."); return; }
-    setLoading(true); setStatus("Fetching post…");
-    try {
-      const response = await fetch(`/api/reddit?url=${encodeURIComponent(url)}`); const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Reddit request failed");
-      setStory(data); setOriginalPost(data); setSelectedCommentIds([]); setReplyContext(null); setShowFallback(false); setStatus("Post loaded. Every field is still editable.");
-    } catch { setShowFallback(true); setStatus("Reddit blocked the automatic import. Use the quick JSON fallback below, or edit the fields manually."); }
-    finally { setLoading(false); }
+  const importRequest = useRef<AbortController | null>(null);
+  useEffect(() => () => importRequest.current?.abort(), []);
+  function applyImport(data: ImportedPost) {
+    setStory(data.post); setOriginalPost(data.post); setRedditComments(data.replies);
+    setSelectedCommentIds([]); setReplyContext(null); setShowFallback(false);
+    setStatus(`Post loaded with ${data.replies.length} available comments and replies. Every field is editable.`);
   }
-
+  async function fetchPost() {
+    try { redditUrl(url); } catch (error) { setStatus((error as Error).message); return; }
+    importRequest.current?.abort();
+    const controller = new AbortController(); importRequest.current = controller;
+    setLoading(true); setStatus("Loading post and comments…");
+    try {
+      const response = await fetch(`/api/reddit?url=${encodeURIComponent(url)}`, { signal: controller.signal });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Reddit request failed");
+      if (!controller.signal.aborted) applyImport(data);
+    } catch (error) {
+      if (!controller.signal.aborted) { setShowFallback(true); setStatus(error instanceof Error ? error.message : "Import failed. Paste the post text below."); }
+    } finally { if (importRequest.current === controller) setLoading(false); }
+  }
+  function cancelImport() { importRequest.current?.abort(); importRequest.current = null; setLoading(false); }
   function importJson() {
     try {
-      const payload = JSON.parse(redditJson);
-      const post = Array.isArray(payload) ? payload?.[0]?.data?.children?.[0]?.data : payload?.data?.children?.[0]?.data ?? payload;
-      if (!post?.title) throw new Error();
-      setStory({ title: String(post.title || ""), body: String(post.selftext || ""), author: String(post.author || "anonymous"), subreddit: String(post.subreddit || "reddit"), score: Number(post.score || 0), comments: Number(post.num_comments || 0) });
-      setOriginalPost({ title: String(post.title || ""), body: String(post.selftext || ""), author: String(post.author || "anonymous"), subreddit: String(post.subreddit || "reddit"), score: Number(post.score || 0), comments: Number(post.num_comments || 0) }); setSelectedCommentIds([]); setReplyContext(null);
-      const found: RedditComment[] = [];
-      const walk = (children: unknown[], depth = 0) => children?.forEach((child) => {
-        const data = (child as { kind?: string; data?: Record<string, unknown> })?.data;
-        if (!data || typeof data.body !== "string") return;
-        found.push({ id: String(data.id || `${depth}-${found.length}`), author: String(data.author || "anonymous"), body: data.body, score: Number(data.score || 0), depth, selected: false });
-        const replies = data.replies as { data?: { children?: unknown[] } } | "" | undefined;
-        if (replies && typeof replies === "object") walk(replies.data?.children || [], depth + 1);
-      });
-      if (Array.isArray(payload)) walk(payload?.[1]?.data?.children || []);
-      setRedditComments(found); setStatus(`Post imported${found.length ? ` with ${found.length} comments and replies` : ""}. Every field is editable.`); setShowFallback(false); setRedditJson("");
-    } catch { setStatus("That doesn’t look like Reddit post JSON. Copy the complete page contents and try again."); }
+      const data = parseRedditPost(JSON.parse(redditJson));
+      cancelImport(); applyImport(data); setRedditJson("");
+    } catch { setStatus("That doesn’t look like Reddit post JSON. You can also paste the post text directly into Title and Story."); }
   }
-
-  function jsonUrl() {
-    try { const parsed = new URL(url); parsed.search = ""; parsed.hash = ""; parsed.pathname = parsed.pathname.replace(/\/$/, "") + ".json"; return parsed.toString(); } catch { return "https://www.reddit.com/"; }
-  }
+  const jsonLink = redditJsonUrl(url);
 
   function download() {
     const canvas = canvasRef.current; if (!canvas) return;
@@ -341,7 +338,7 @@ export default function Home() {
     setStatus(`${nextIds.length} ${nextIds.length === 1 ? "comment" : "comments/replies"} selected. The original post stays at the top.`);
   }
 
-  function resetCard() { setStory(starter); setOriginalPost(starter); setSelectedCommentIds([]); setReplyContext(null); }
+  function resetCard() { cancelImport(); setRedditComments([]); setStory(starter); setOriginalPost(starter); setSelectedCommentIds([]); setReplyContext(null); }
 
   return <main>
     <header><div className="brand"><span className="brand-mark"><img src="/ginduyah-avatar.png" alt="Ginduyah"/></span><span>ginduyah</span></div><div className="header-actions"><div className={`theme-menu ${themeMenuOpen?"open":""}`}><button className="theme-trigger" onClick={()=>setThemeMenuOpen((open)=>!open)} aria-haspopup="listbox" aria-expanded={themeMenuOpen}><span className={rgbMode?"theme-dot rgb-dot":"theme-dot"} style={rgbMode?undefined:{background:accent.hex}}/><span>THEME</span><strong>{rgbMode?"RGB":accent.name}</strong><i>⌄</i></button>{themeMenuOpen&&<div className="theme-options" role="listbox" aria-label="Choose theme">{accentColors.map((color)=><button key={color.name} role="option" aria-selected={!rgbMode&&accent.name===color.name} className={!rgbMode&&accent.name===color.name?"selected":""} onClick={()=>{setRgbMode(false);setAccent(color);setThemeMenuOpen(false)}}><span className="theme-dot" style={{background:color.hex}}/><span>{color.name}</span><b>✓</b></button>)}<button role="option" aria-selected={rgbMode} className={rgbMode?"selected":""} onClick={()=>{setRgbMode(true);setThemeMenuOpen(false)}}><span className="theme-dot rgb-dot"/><span>RGB <small>Animated</small></span><b>✓</b></button></div>}</div><a className="youtube-link" href="https://youtube.com/@ginduyah/" target="_blank" rel="noreferrer" aria-label="Visit Ginduyah on YouTube"><span>▶</span> YouTube</a></div></header>
@@ -351,9 +348,9 @@ export default function Home() {
       <div className="controls">
         <div className="step"><span>01</span><h2>Bring in your story</h2></div>
         <label className="label" htmlFor="reddit-url">Reddit post URL</label>
-        <div className="url-row"><input id="reddit-url" value={url} onChange={(e)=>setUrl(e.target.value)} onKeyDown={(e)=>e.key==="Enter"&&fetchPost()} placeholder="https://www.reddit.com/r/.../comments/..."/><a className="copy-json" href={jsonUrl()} target="_blank" rel="noreferrer" onClick={()=>setShowFallback(true)}>OPEN JSON</a><button className="fetch" onClick={fetchPost} disabled={loading}>{loading ? "Loading…" : "Fetch post"}</button></div>
-        <p className="status">{status}</p>
-        {showFallback && <div className="fallback"><strong>Quick fallback</strong><p>On the Reddit JSON page, copy everything, come back here, and paste it into the box.</p><a href={jsonUrl()} target="_blank" rel="noreferrer">Open Reddit JSON ↗</a><textarea aria-label="Reddit JSON" rows={5} value={redditJson} onChange={(e)=>setRedditJson(e.target.value)} placeholder="Paste the Reddit JSON here…"/><button onClick={importJson} disabled={!redditJson.trim()}>Import copied post</button></div>}
+        <div className="url-row"><input id="reddit-url" value={url} onChange={(e)=>{cancelImport();setUrl(e.target.value)}} onKeyDown={(e)=>e.key==="Enter"&&fetchPost()} placeholder="https://www.reddit.com/r/.../comments/..."/><button className="fetch" onClick={fetchPost} disabled={loading}>{loading ? "Loading…" : "Import post"}</button></div>
+        <p className="status" role="status" aria-live="polite">{status}</p><p className="tip">On mobile, use Reddit’s Share → Copy link, paste it here, then tap Import post.</p><button className="manual-import-toggle" onClick={()=>setShowFallback(open=>!open)} aria-expanded={showFallback}>Paste text or JSON instead</button>
+        {showFallback && <div className="fallback"><strong>Paste the post text</strong><p>Copy the title and story from Reddit into the editable fields below. This works on mobile without opening a JSON page.</p><details><summary>Advanced: import copied JSON</summary><p>If you already have Reddit JSON, paste it here to include its available comments.</p>{jsonLink && <a href={jsonLink} target="_blank" rel="noreferrer">Open Reddit JSON ↗</a>}<textarea aria-label="Reddit JSON" rows={5} value={redditJson} onChange={(e)=>setRedditJson(e.target.value)} placeholder="Paste the Reddit JSON here…"/><button onClick={importJson} disabled={!redditJson.trim()}>Import copied JSON</button></details></div>}
         <div className="divider"/>
         <div className="step"><span>02</span><h2>Fine-tune the copy</h2></div>
         <div className="two"><label>Subreddit<input value={story.subreddit} onChange={(e)=>update("subreddit", e.target.value)}/></label><label>Username<input value={story.author} onChange={(e)=>update("author", e.target.value)}/></label></div>
@@ -365,7 +362,7 @@ export default function Home() {
           <label className="check"><input type="checkbox" checked={includeReplies} onChange={(e)=>setIncludeReplies(e.target.checked)}/><span/> Add comments & replies <small>Optional</small></label>
           {includeReplies && <div className="reply-panel">
             <div className="profile-row reply-profile"><label className="avatar-upload">Reply profile picture<input type="file" accept="image/*" onChange={(e)=>chooseReplyAvatar(e.target.files?.[0])}/><span>{replyAvatarImage ? "Replace reply image" : "Choose reply image"}</span></label>{replyAvatarImage && <button onClick={()=>setReplyAvatarImage(null)}>Remove</button>}</div>
-            <p>{redditComments.length ? "Pick as many comments and replies as you want. The original post title and story will stay above them." : "Paste the post’s Reddit JSON above to import its comments and nested replies."}</p>
+            <p>{redditComments.length ? "Pick as many comments and replies as you want. The original post title and story will stay above them." : "Import a post above to load available comments and nested replies. Reddit may return only part of a large thread."}</p>
             {selectedCommentIds.length > 0 && <div className="selected-summary"><strong>{selectedCommentIds.length} selected</strong><button onClick={()=>{setSelectedCommentIds([]);setStory(originalPost);setStatus("Comments cleared. The original post is still in the preview.");}}>Clear all</button></div>}
             {redditComments.map((comment) => <article className={`reply-item ${selectedCommentIds.includes(comment.id) ? "selected" : ""}`} key={comment.id} style={{ marginLeft: `${Math.min(comment.depth, 3) * 14}px` }}>
               <div><strong>u/{comment.author}</strong><span>{formatCount(comment.score)} points{comment.depth ? " · reply" : ""}</span></div>

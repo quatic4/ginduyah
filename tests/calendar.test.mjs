@@ -1,0 +1,41 @@
+import assert from 'node:assert/strict';
+import { loadTS } from './load-ts.mjs';
+const modules = await loadTS(['lib/studio/types', 'lib/studio/calendar']);
+try {
+  const { coverageAhead, calendarSlots, dayCoverage } = await modules.load('lib/studio/calendar');
+  const { torontoDate } = await modules.load('lib/studio/types');
+  const channel = { id: 'a', handle: '@ginduyah', comic_goal: 2, post_goal: 1 };
+  const data = { channels: [channel], items: [], steps: [], goals: [] };
+  const add = (day, type = 'comic', stage = 'scheduled', channelId = 'a', time = null) => {
+    const item = { id: String(data.items.length), channel_id: channelId, due_date: day, content_type: type, upload_time: time, created_at: '2026-10-01' }; data.items.push(item);
+    data.steps.push({ item_id: item.id, stage, completed_at: '2026-10-01' }); return item;
+  };
+  assert.equal(coverageAhead(data, channel, '2026-10-05').days, 0);
+  add('2026-10-06'); add('2026-10-06'); add('2026-10-06');
+  assert.equal(dayCoverage(data, channel, '2026-10-06').missing, 1, 'Extra comics cannot fill internet post target');
+  add('2026-10-06', 'internet_post', 'edit');
+  assert.equal(coverageAhead(data, channel, '2026-10-05').days, 0, 'Ready is not scheduled');
+  add('2026-10-06', 'internet_post');
+  assert.equal(coverageAhead(data, channel, '2026-10-05').days, 1, 'Today does not reduce future coverage');
+  add('2026-10-08'); add('2026-10-08'); add('2026-10-08', 'internet_post');
+  assert.equal(coverageAhead(data, channel, '2026-10-05').firstGap, '2026-10-07', 'Later stock cannot hide gap');
+  data.goals.push({ channel_id: 'a', day: '2026-10-07', comic_goal: 0, post_goal: 0 });
+  assert.equal(coverageAhead(data, channel, '2026-10-05').days, 2, 'Zero-target day skipped');
+  assert.equal(coverageAhead(data, { ...channel, id: 'b' }, '2026-10-05').days, 0, 'Channels isolated');
+  assert.equal(coverageAhead(data, { ...channel, comic_goal: 0, post_goal: 0 }, '2026-10-05').hasTargets, false);
+  assert.equal(coverageAhead(data, channel, '2026-10-05', undefined, 3).capped, true);
+  const snapshot = JSON.stringify(data);
+  let slots = calendarSlots(data, channel, '2026-10-06');
+  assert.equal(slots.slots.every(slot => slot.item && slot.suggested), true);
+  assert.equal(slots.extra.length, 2);
+  assert.equal(JSON.stringify(data), snapshot, 'Suggested times never change saved data');
+  const custom = add('2026-10-09', 'comic', 'scheduled', 'a', '13:30');
+  const exact = add('2026-10-09', 'comic', 'scheduled', 'a', '21:00');
+  slots = calendarSlots(data, channel, '2026-10-09');
+  assert.equal(slots.slots.find(s => s.time === '21:00').item.id, exact.id);
+  assert.equal(slots.slots.find(s => s.time === '11:00').item.id, custom.id);
+  assert.equal(slots.slots.find(s => s.item?.id === custom.id).suggested, false);
+  assert.equal(torontoDate(new Date('2026-11-01T03:59:00Z')), '2026-10-31');
+  assert.equal(torontoDate(new Date('2026-11-01T05:01:00Z')), '2026-11-01');
+  console.log('PASS: calendar coverage, gaps, targets, channels, slot matching, unknown times and Toronto dates.');
+} finally { await modules.close(); }

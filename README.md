@@ -23,3 +23,7 @@ and stage credits. Supabase stores team data centrally and checks each studio re
 See [the setup guide](docs/team-studio-setup.md), including the required PIN activation.
 
 `/stats` and the homepage show only **@ginduyah** and **@gleebyreads**.
+
+The Studio calendar shows daily upload slots and scheduled days ahead for each channel.
+See [calendar and Reddit import setup](docs/calendar-and-reddit.md) for coverage rules
+and the approved Reddit API connection needed for automatic mobile imports.

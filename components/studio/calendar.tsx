@@ -1,0 +1,24 @@
+"use client";
+import { calendarSlots, coverageAhead, dayCoverage, itemStatus, timeLabel } from "@/lib/studio/calendar";
+import { dayLabel, type ContentType, type Snapshot, type Channel, type Item } from "@/lib/studio/types";
+
+export function CoverageCards({ data, today, onChannel }: { data: Snapshot; today: string; onChannel: (id: string) => void }) {
+  return <section className="coverage-section" aria-label="Days ahead by channel"><div className="coverage-heading"><h2>How far ahead are we?</h2><p>Full scheduled days from tomorrow · checks the next 30 days · today shown separately</p></div><div className="coverage-grid">{data.channels.map(channel => {
+    const ahead = coverageAhead(data, channel, today);
+    const todayCount = dayCoverage(data, channel, today);
+    return <article className="coverage-card" key={channel.id}><button className="text-button" onClick={() => onChannel(channel.id)}>{channel.name} ↗</button><strong>{ahead.hasTargets ? `${ahead.days}${ahead.capped ? "+" : ""}` : "—"}<small>{ahead.hasTargets ? `full ${ahead.days === 1 ? "day" : "days"} ahead` : "No targets in next 30 days"}</small></strong><p>{ahead.firstGap ? `Next gap: ${dayLabel(ahead.firstGap, { month: "short", day: "numeric" })}` : ahead.capped ? "Next 30 days covered" : "Set daily targets to track coverage."}</p><div className="coverage-types">{(["comic", "internet_post"] as const).map(type => { const c = coverageAhead(data, channel, today, type); return <span key={type}>{type === "comic" ? "Comics" : "Internet posts"}: <b>{c.hasTargets ? `${c.days}${c.capped ? "+" : ""}d` : "No target"}</b></span>; })}</div><p className={todayCount.missing ? "coverage-gap" : "coverage-ok"}>Today: {todayCount.target ? `${todayCount.scheduled}/${todayCount.target} scheduled${todayCount.missing ? ` · ${todayCount.missing} still needed` : " · covered"}` : "No uploads planned"}</p></article>;
+  })}</div><p className="coverage-note">Only entries marked Scheduled count. Ready edits still need scheduling. Totals use dates and content types, including entries whose exact time isn’t set.</p></section>;
+}
+
+type Props = { data: Snapshot; channel: Channel; days: string[]; today: string; onOpen: (item: Item) => void; onAdd: (day: string, type: ContentType, time: string | null) => void; onDay: (day: string) => void };
+export function UploadCalendar({ data, channel, days, today, onOpen, onAdd, onDay }: Props) {
+  function entry(item: Item, suggested = false, suggestedTime?: string | null) {
+    const status = itemStatus(data, item);
+    return <button className={`calendar-entry ${status === "Scheduled" ? "is-scheduled" : status === "Ready" ? "is-ready" : ""}`} onClick={() => onOpen(item)} key={item.id}><span>{item.upload_time ? timeLabel(item.upload_time) : suggested ? `Suggested ${timeLabel(suggestedTime)}` : "Time not set"}</span><strong>{item.title}</strong><small>{item.content_type === "comic" ? "Comic" : "Internet post"} · {status}</small>{suggested && <em>Confirm the upload time</em>}</button>;
+  }
+  return <section aria-label={`${channel.name} weekly upload calendar`}><div className="calendar-intro"><h2>The week at a glance.</h2><p>{channel.handle.toLowerCase() === "@ginduyah" ? "Usual slots: 11 AM comic · 4 PM internet post · 9 PM comic. Suggested times need confirmation." : "Set each submission’s upload time when you know it."} All times are Toronto time.</p></div><div className="upload-calendar">{days.map(day => {
+    const { slots, extra } = calendarSlots(data, channel, day);
+    const counts = dayCoverage(data, channel, day);
+    return <article className={`calendar-day ${day === today ? "is-today" : ""}`} key={day}><button className="calendar-date" onClick={() => onDay(day)}><span>{dayLabel(day, { weekday: "short" })}{day === today ? " · Today" : ""}</span><strong>{dayLabel(day, { month: "short", day: "numeric" })}</strong><small>{counts.scheduled}/{counts.target} scheduled</small></button><div className="calendar-day-items">{slots.map((slot, index) => slot.item ? entry(slot.item, slot.suggested, slot.time) : <button key={`empty-${index}`} className="calendar-empty" onClick={() => onAdd(day, slot.type, slot.time)}><span>{slot.time ? timeLabel(slot.time) : "Open slot"}</span><strong>＋ {slot.type === "comic" ? "Comic needed" : "Internet post needed"}</strong><small>Add a submission</small></button>)}{extra.length > 0 && <p className="calendar-extra-label">Other submissions</p>}{extra.map(item => entry(item))}{!slots.length && !extra.length && <p className="calendar-rest">No uploads planned</p>}<button className="text-button calendar-add" onClick={() => onAdd(day, "comic", null)}>＋ Add another</button></div></article>;
+  })}</div><p className="coverage-note">This tracks the team’s updates; it does not publish videos to YouTube. Click a date to open its daily board.</p></section>;
+}

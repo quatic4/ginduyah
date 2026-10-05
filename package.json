@@ -10,7 +10,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "tsc --noEmit",
-    "test": "node tests/studio.test.mjs && node tests/shared-studio.test.mjs && node tests/studio-pin.test.mjs"
+    "test": "node tests/studio.test.mjs && node tests/shared-studio.test.mjs && node tests/studio-pin.test.mjs && node tests/calendar.test.mjs && node tests/calendar-db.test.mjs && node tests/reddit.test.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.116.0",

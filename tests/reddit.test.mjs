@@ -1,0 +1,45 @@
+import assert from 'node:assert/strict';
+import { loadTS } from './load-ts.mjs';
+const modules = await loadTS(['lib/reddit/post', 'lib/reddit/import']);
+try {
+  const { parseRedditPost, redditUrl, redditPostId, redditJsonUrl } = await modules.load('lib/reddit/post');
+  const { createRedditImporter } = await modules.load('lib/reddit/import');
+  for (const url of ['https://m.reddit.com/r/test/comments/abc/title/?share=1', 'https://redd.it/abc', 'https://old.reddit.com/comments/abc.json']) assert.equal(redditPostId(redditUrl(url)), 'abc');
+  for (const url of ['https://reddit.com.evil.test/comments/abc', 'https://user:pass@reddit.com/comments/abc', 'https://reddit.com:444/comments/abc', 'file:///etc/passwd', 'https://127.0.0.1/comments/abc']) assert.throws(() => redditUrl(url));
+  assert.equal(redditJsonUrl('https://reddit.com/comments/abc.json?raw_json=1'), 'https://www.reddit.com/comments/abc.json?raw_json=1');
+  assert.equal(redditJsonUrl('https://reddit.com/r/test/s/xyz'), null);
+  const comment = (id, body, replies = '') => ({ kind: 't1', data: { id, body, author: 'test', score: 2, replies } });
+  const payload = [{ data: { children: [{ data: { title: 'A & B', selftext: 'Body', author: 'u', num_comments: 3 } }] } }, { data: { children: [comment('1', 'Hi', { data: { children: [comment('2', 'Reply')] } }), comment('3', '[deleted]'), { kind: 'more', data: { id: '4' } }] } }];
+  const parsed = parseRedditPost(payload);
+  assert.equal(parsed.post.title, 'A & B'); assert.equal(parsed.replies.length, 2); assert.equal(parsed.replies[1].depth, 1);
+  assert.throws(() => parseRedditPost({ error: 403 }));
+  const config = { clientId: 'test-id', clientSecret: 'test-secret', userAgent: 'web:ginduyah-test:1 (by /u/test)' };
+  let calls = [];
+  const mock = async (url, init) => {
+    calls.push({ url, init });
+    if (url.includes('/s/')) return new Response(null, { status: 302, headers: { location: 'https://www.reddit.com/r/test/comments/abc/title/' } });
+    if (url.includes('access_token')) return Response.json({ access_token: 'test-token', expires_in: 3600 });
+    return Response.json(payload);
+  };
+  const importer = createRedditImporter(config, mock);
+  assert.deepEqual(await importer('https://reddit.com/r/test/s/xyz'), parsed);
+  assert.equal(calls.length, 3); assert.equal(calls[0].init.headers.Authorization, undefined);
+  assert.equal(calls[2].init.headers.Authorization, 'Bearer test-token');
+  assert.equal(calls[2].url.startsWith('https://oauth.reddit.com/comments/abc?'), true);
+  await importer('https://redd.it/abc'); assert.equal(calls.length, 4, 'Reuses unexpired token');
+  assert.equal(calls.every(c => c.init.redirect === 'manual' && c.init.cache === 'no-store'), true);
+  await assert.rejects(createRedditImporter({}, mock)('https://redd.it/abc'), /isn't connected/);
+  let evilCalls = 0;
+  await assert.rejects(createRedditImporter(config, async () => { evilCalls++; return new Response(null, { status: 302, headers: { location: 'https://evil.test/' } }); })('https://reddit.com/r/test/s/xyz'), /safely/);
+  assert.equal(evilCalls, 1, 'Never fetches unsafe redirect');
+  let limitedCalls = 0;
+  const limited = createRedditImporter(config, async () => { limitedCalls++; return new Response(null, { status: 429 }); });
+  await assert.rejects(limited('https://redd.it/abc'), /limiting/);
+  await assert.rejects(limited('https://redd.it/abc'), /limiting/);
+  assert.equal(limitedCalls, 1, 'Honors cooldown without retrying Reddit');
+  const blocked = createRedditImporter(config, async url => url.includes('access_token') ? Response.json({ access_token: 'test-token' }) : new Response(null, { status: 403 }));
+  await assert.rejects(blocked('https://redd.it/abc'), /denied access/);
+  const oversized = createRedditImporter(config, async url => url.includes('access_token') ? Response.json({ access_token: 'test-token' }) : new Response('x'.repeat(2_000_001)));
+  await assert.rejects(oversized('https://redd.it/abc'), /too large/);
+  console.log('PASS: Reddit parsing, mobile links, OAuth, comments, redirect safety, size limits and upstream failures.');
+} finally { await modules.close(); }
