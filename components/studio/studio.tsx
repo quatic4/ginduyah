@@ -4,12 +4,13 @@ import { useEffect, useState } from "react";
 import { StudioDialog } from "./dialog";
 import { ChannelForm, GoalForm, ItemForm, MemberForm } from "./forms";
 import { useStudio } from "./use-studio";
+import { ScreenshotUpload, ScreenshotAttachments } from "./screenshots";
 import { PinPanel } from "./pin-panel";
 import { CoverageCards, UploadCalendar } from "./calendar";
 import { timeLabel } from "@/lib/studio/calendar";
 import { STAGES, countsFor, dayLabel, goalFor, isFinished, safeLink, shiftDate, torontoDate, weekDays, type Channel, type ContentType, type Item, type Operation, type Snapshot, type Step, type Member } from "@/lib/studio/types";
 
-type Modal = { kind: "add"; type: ContentType; day?: string; time?: string | null } | { kind: "details" | "edit"; id: string } | { kind: "goals" | "channel" | "new-channel" | "add-member" } | { kind: "edit-member"; member: Member } | null;
+type Modal = { kind: "add"; type: ContentType; day?: string; time?: string | null } | { kind: "details" | "edit"; id: string } | { kind: "batch" | "goals" | "channel" | "new-channel" | "add-member" } | { kind: "edit-member"; member: Member } | null;
 type Tab = "calendar" | "board" | "team" | "activity";
 
 export function Studio() {
@@ -24,7 +25,8 @@ export function Studio() {
   const { data, busy, actorId } = state;
   const channel = data?.channels.find(c => c.id === channelId) || data?.channels[0];
   const memberName = (id: string | null) => data?.members.find(m => m.user_id === id)?.display_name || "Unassigned";
-  const closeModal = () => { setModal(null); state.setError(""); };
+  const [filesBusy, setFilesBusy] = useState(false);
+  const closeModal = () => { if (filesBusy) return; setModal(null); state.setError(""); };
   function openModal(value: Modal) { state.setError(""); setModal(value); }
   async function save(operation: Operation, payload: Record<string, unknown>, close = true) {
     if (await state.mutate(operation, payload)) { if (close) closeModal(); }
@@ -56,7 +58,7 @@ export function Studio() {
       </aside>
       <div className="studio-content">
         <div className="studio-topline"><span className="studio-eyebrow">{channel.name} / {(tab === "board" || tab === "calendar") ? "PRODUCTION" : tab === "team" ? "CONTRIBUTIONS" : "HISTORY"}</span><span className="sync-status">{state.syncFailed ? "Sync paused" : busy ? "Saving…" : state.lastSync ? "Saved · refreshes every 5s" : "Connecting…"}{<button onClick={() => void state.refresh()} aria-label="Refresh board" disabled={busy}>↻</button>}</span></div>
-        <div className="studio-title"><div><h1>{tab === "calendar" ? "Keep the next upload covered." : tab === "board" ? "Make today count." : tab === "team" ? "Everyone’s part." : "The work, on record."}</h1><p>{tab === "calendar" ? "See the schedule, spot the gaps, and keep moving." : tab === "board" ? (total === 0 ? "No uploads planned for this day." : remaining === 0 ? "This day’s targets are covered. Nice work." : `${remaining} more ${remaining === 1 ? "upload" : "uploads"} to finish for this day.`) : tab === "team" ? "Submissions and completed stages, credited to the people behind them." : "A shared history of submissions, changes, and completed work."}</p></div><div className="title-actions"><button className="secondary" onClick={() => openModal({ kind: "channel" })}>Channel settings</button><button className="primary" onClick={() => openModal({ kind: "add", type: "comic" })}><span aria-hidden="true">＋</span> Add submission</button></div></div>
+        <div className="studio-title"><div><h1>{tab === "calendar" ? "Keep the next upload covered." : tab === "board" ? "Make today count." : tab === "team" ? "Everyone’s part." : "The work, on record."}</h1><p>{tab === "calendar" ? "See the schedule, spot the gaps, and keep moving." : tab === "board" ? (total === 0 ? "No uploads planned for this day." : remaining === 0 ? "This day’s targets are covered. Nice work." : `${remaining} more ${remaining === 1 ? "upload" : "uploads"} to finish for this day.`) : tab === "team" ? "Submissions and completed stages, credited to the people behind them." : "A shared history of submissions, changes, and completed work."}</p></div><div className="title-actions"><button className="secondary" onClick={() => openModal({ kind: "batch" })}>Upload screenshot batch</button><button className="secondary" onClick={() => openModal({ kind: "channel" })}>Channel settings</button><button className="primary" onClick={() => openModal({ kind: "add", type: "comic" })}><span aria-hidden="true">＋</span> Add submission</button></div></div>
         <div className="identity-bar"><label>Working as<select aria-label="Your name" value={actorId} disabled={busy} onChange={e => state.selectMember(e.target.value)}><option value="">Choose your name</option>{data.members.filter(m => m.active).map(m => <option key={m.user_id} value={m.user_id}>{m.display_name}</option>)}</select></label><span>{actorId ? "Changes and completed work are credited to this name." : "Browse freely. Pick your name before making changes."}</span><button className="text-button" onClick={() => setTab("team")}>Manage team</button></div>
         {state.syncFailed && <p className="studio-notice" role="status">Updates are paused. Check your connection and refresh; the board may be out of date.</p>}
         {state.error && !modal && <div className="studio-error" role="alert">{state.error}<button className="text-button" onClick={() => { state.setError(""); void state.refresh(); }}>Refresh</button></div>}
@@ -87,12 +89,13 @@ export function Studio() {
         {tab === "activity" && <ActivityView data={data} channelId={channel.id} />}
       </div>
     </div>
-    {modal && <StudioDialog title={modal.kind === "add" ? "Add a submission" : modal.kind === "details" ? "Submission details" : modal.kind === "edit" ? "Edit submission" : modal.kind === "goals" ? "Daily targets" : modal.kind === "add-member" ? "Add a teammate" : modal.kind === "edit-member" ? "Rename teammate" : modal.kind === "channel" ? "Channel settings" : "Add a channel"} onClose={closeModal}>
+    {modal && <StudioDialog title={modal.kind === "batch" ? "Upload & auto-date internet posts" : modal.kind === "add" ? "Add a submission" : modal.kind === "details" ? "Submission details" : modal.kind === "edit" ? "Edit submission" : modal.kind === "goals" ? "Daily targets" : modal.kind === "add-member" ? "Add a teammate" : modal.kind === "edit-member" ? "Rename teammate" : modal.kind === "channel" ? "Channel settings" : "Add a channel"} onClose={closeModal} busy={filesBusy}>
       {!actorId && <label className="modal-identity">Your name<select aria-label="Your name for this change" value={actorId} onChange={e => state.selectMember(e.target.value)}><option value="">Choose your name</option>{data.members.filter(m => m.active).map(m => <option key={m.user_id} value={m.user_id}>{m.display_name}</option>)}</select></label>}
       {state.error && <p className="studio-error" role="alert">{state.error}</p>}
+      {modal.kind === "batch" && <ScreenshotUpload data={data} channel={channel} actorId={actorId} request={state.fileRequest} onSaved={() => void state.refresh()} onBusy={setFilesBusy} />}
       {modal.kind === "add" && <ItemForm channel={channel} day={modal.day || day} time={modal.time} type={modal.type} busy={busy} onSave={payload => void save("add_item", payload)} />}
       {modal.kind === "edit" && activeItem && <ItemForm item={activeItem} channel={channel} day={day} busy={busy} onSave={payload => void save("edit_item", payload)} onDelete={version => void save("delete_item", { item_id: activeItem.id, version })} />}
-      {modal.kind === "details" && activeItem && <ItemDetails item={activeItem} data={data} busy={busy} onEdit={() => openModal({ kind: "edit", id: activeItem.id })} onStep={payload => void save("set_step", payload, false)} />}
+      {modal.kind === "details" && activeItem && <><ItemDetails item={activeItem} data={data} busy={busy || filesBusy} onEdit={() => openModal({ kind: "edit", id: activeItem.id })} onStep={payload => void save("set_step", payload, false)} /><ScreenshotAttachments key={activeItem.id} item={activeItem} data={data} channel={channel} actorId={actorId} request={state.fileRequest} onSaved={() => void state.refresh()} onBusy={setFilesBusy} /></>}
       {(modal.kind === "details" || modal.kind === "edit") && !activeItem && <p>This submission was removed. Close this window to refresh the board.</p>}
       {modal.kind === "goals" && <GoalForm day={day} comicGoal={currentGoal.comic_goal} postGoal={currentGoal.post_goal} version={data.goals.find(g => g.channel_id === channel.id && g.day === day)?.version || 0} busy={busy} onSave={payload => void save("set_goal", { ...payload, channel_id: channel.id, day })} />}
       {(modal.kind === "channel" || modal.kind === "new-channel") && <ChannelForm channel={modal.kind === "channel" ? channel : undefined} busy={busy} onSave={payload => void save(modal.kind === "channel" ? "edit_channel" : "add_channel", payload)} />}

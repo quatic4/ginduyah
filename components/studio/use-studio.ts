@@ -148,5 +148,22 @@ export function useStudio() {
     } finally { saving.current = false; setBusy(false); }
   }
 
-  return { configured: Boolean(client), unlocked: Boolean(session), unlock, lock, retryAt, data, loading, busy, error, setError, lastSync, syncFailed, refresh, mutate, actorId, selectMember };
+  const fileRequest = useCallback(async (body: FormData | Record<string, unknown>) => {
+    const accessToken = token.current;
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!accessToken || !url || !key) throw new Error("Enter the team PIN before opening screenshots.");
+    const multipart = body instanceof FormData;
+    const response = await fetch(`${url}/functions/v1/studio-files`, {
+      method: "POST", headers: { apikey: key, "x-studio-session": accessToken, ...(multipart ? {} : { "Content-Type": "application/json" }) },
+      body: multipart ? body : JSON.stringify(body), signal: AbortSignal.timeout(120000),
+    });
+    const result = await response.json();
+    if (token.current !== accessToken) throw new Error("Studio was locked. Enter the PIN again to check the upload.");
+    if (response.status === 401) clearSession(result.error || "Enter the team PIN again.");
+    if (!response.ok) throw new Error(result.error || "Screenshot request failed. Refresh and retry.");
+    return result;
+  }, [clearSession]);
+
+  return { configured: Boolean(client), unlocked: Boolean(session), unlock, lock, retryAt, data, loading, busy, error, setError, lastSync, syncFailed, refresh, mutate, actorId, selectMember, fileRequest };
 }

@@ -27,3 +27,6 @@ See [the setup guide](docs/team-studio-setup.md), including the required PIN act
 The Studio calendar shows daily upload slots and scheduled days ahead for each channel.
 See [calendar and Reddit import setup](docs/calendar-and-reddit.md) for coverage rules
 and the approved Reddit API connection needed for automatic mobile imports.
+
+Team Studio also supports private screenshot uploads, original downloads and
+automatically dated internet-post batches. See [screenshot uploads](docs/studio-screenshots.md).
