@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { ThemePicker } from "./site-theme";
 
 export function SiteNav() {
   const pathname = usePathname();
@@ -12,5 +13,5 @@ export function SiteNav() {
 }
 
 export function SiteHeader() {
-  return <><header><Link href="/" className="brand" style={{ color: "inherit", textDecoration: "none" }}><span className="brand-mark"><img src="/ginduyah-avatar.png" alt="" /></span><span>ginduyah</span></Link><span className="studio-header-note">Made for the next upload.</span></header><SiteNav /></>;
+  return <><header><Link href="/" className="brand" style={{ color: "inherit", textDecoration: "none" }}><span className="brand-mark"><img src="/ginduyah-avatar.png" alt="" /></span><span>ginduyah</span></Link><div className="header-actions"><ThemePicker /><a className="youtube-link" href="https://youtube.com/@ginduyah/" target="_blank" rel="noreferrer" aria-label="Visit Ginduyah on YouTube"><span>▶</span> YouTube</a></div></header><SiteNav /></>;
 }

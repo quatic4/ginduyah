@@ -60,7 +60,9 @@ export function createFileHandler(admin: Client) {
         const image = new Uint8Array(await file.arrayBuffer()); const mime = imageMime(image);
         const sha256 = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',image))).map(b=>b.toString(16).padStart(2,'0')).join('');
         const actor = String(form.get('actor_id') || '');
-        const reserved = await call(token,actor,'reserve',{ id:form.get('id'), item_id:form.get('item_id'), channel_id:form.get('channel_id'), start_date:form.get('start_date'), title:form.get('title'), file_name:safeFilename(file.name,mime), mime_type:mime, byte_size:file.size, sha256 });
+        const contentType = form.get('content_type');
+        if (contentType !== null && contentType !== 'comic' && contentType !== 'internet_post') throw new FileError('Choose Comic or Internet post for each screenshot.');
+        const reserved = await call(token,actor,'reserve',{ id:form.get('id'), item_id:form.get('item_id'), channel_id:form.get('channel_id'), start_date:form.get('start_date'), title:form.get('title'), content_type:contentType, file_name:safeFilename(file.name,mime), mime_type:mime, byte_size:file.size, sha256 });
         if (reserved.state === 'ready') return reply({ attachment:reserved });
         const storage = await bucket();
         const uploaded = await storage.upload(reserved.object_path,image,{contentType:mime,upsert:false,cacheControl:'60'});

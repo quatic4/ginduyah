@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { SiteNav } from "@/components/site-nav";
+import { SiteHeader } from "@/components/site-nav";
 import { featuredChannels } from "@/lib/channels";
 import { parseRedditPost, redditJsonUrl, redditUrl, type ImportedPost } from "@/lib/reddit/post";
 
@@ -21,15 +21,6 @@ const starter: Story = {
 const presets: Record<Exclude<SizePreset, "custom">, [number, number]> = {
   short: [1080, 1920], square: [1080, 1080], landscape: [1920, 1080],
 };
-
-const accentColors = [
-  { name: "Orange", hex: "#ff541f", rgb: "255,84,31" }, { name: "Red", hex: "#ff3b4f", rgb: "255,59,79" },
-  { name: "Pink", hex: "#f04fbd", rgb: "240,79,189" }, { name: "Purple", hex: "#9b6cff", rgb: "155,108,255" },
-  { name: "Blue", hex: "#438cff", rgb: "67,140,255" }, { name: "Cyan", hex: "#20c7d9", rgb: "32,199,217" },
-  { name: "Green", hex: "#39c978", rgb: "57,201,120" }, { name: "Yellow", hex: "#f2bb35", rgb: "242,187,53" },
-];
-
-
 
 const avatarColors = ["#ff4500", "#ff3b4f", "#f04fbd", "#9b6cff", "#438cff", "#20c7d9", "#39c978", "#f2a531"];
 
@@ -96,9 +87,6 @@ export default function Home() {
   const [originalPost, setOriginalPost] = useState<Story>(starter);
   const [selectedCommentIds, setSelectedCommentIds] = useState<string[]>([]);
   const [replyContext, setReplyContext] = useState<{ depth: number; postAuthor: string } | null>(null);
-  const [accent, setAccent] = useState(accentColors[0]);
-  const [rgbMode, setRgbMode] = useState(false);
-  const [themeMenuOpen, setThemeMenuOpen] = useState(false);
   const [channelCards, setChannelCards] = useState(featuredChannels);
 
   const update = (key: keyof Story, value: string | number) => {
@@ -106,49 +94,6 @@ export default function Home() {
     setStory((s) => ({ ...s, [key]: value }));
     setOriginalPost((post) => ({ ...post, [key]: value }));
   };
-
-  useEffect(() => {
-    const root = document.documentElement;
-    let targetX = window.innerWidth * .82; let targetY = 0;
-    let glowX = targetX; let glowY = targetY;
-    let animationFrame = 0;
-    const followGlow = (event: PointerEvent) => {
-      targetX = event.clientX; targetY = event.clientY;
-    };
-    const animateGlow = () => {
-      glowX += (targetX - glowX) * .16; glowY += (targetY - glowY) * .16;
-      root.style.setProperty("--glow-x", `${glowX}px`); root.style.setProperty("--glow-y", `${glowY}px`);
-      animationFrame = requestAnimationFrame(animateGlow);
-    };
-    window.addEventListener("pointermove", followGlow, { passive: true });
-    animationFrame = requestAnimationFrame(animateGlow);
-    return () => { window.removeEventListener("pointermove", followGlow); cancelAnimationFrame(animationFrame); };
-  }, []);
-
-  useEffect(() => {
-    const root = document.documentElement;
-    if (!rgbMode) {
-      root.style.setProperty("--orange", accent.hex);
-      root.style.setProperty("--accent-rgb", accent.rgb);
-      return;
-    }
-
-    let frame = 0;
-    const animateRgb = (time: number) => {
-      const hue = (time / 35) % 360;
-      const lightness = .6; const saturation = .92;
-      const a = saturation * Math.min(lightness, 1 - lightness);
-      const channel = (offset: number) => {
-        const k = (offset + hue / 30) % 12;
-        return Math.round(255 * (lightness - a * Math.max(-1, Math.min(k - 3, 9 - k, 1))));
-      };
-      root.style.setProperty("--orange", `hsl(${hue} 92% 60%)`);
-      root.style.setProperty("--accent-rgb", `${channel(0)},${channel(8)},${channel(4)}`);
-      frame = requestAnimationFrame(animateRgb);
-    };
-    frame = requestAnimationFrame(animateRgb);
-    return () => cancelAnimationFrame(frame);
-  }, [accent, rgbMode]);
 
   useEffect(() => {
     let active = true;
@@ -341,8 +286,7 @@ export default function Home() {
   function resetCard() { cancelImport(); setRedditComments([]); setStory(starter); setOriginalPost(starter); setSelectedCommentIds([]); setReplyContext(null); }
 
   return <main>
-    <header><div className="brand"><span className="brand-mark"><img src="/ginduyah-avatar.png" alt="Ginduyah"/></span><span>ginduyah</span></div><div className="header-actions"><div className={`theme-menu ${themeMenuOpen?"open":""}`}><button className="theme-trigger" onClick={()=>setThemeMenuOpen((open)=>!open)} aria-haspopup="listbox" aria-expanded={themeMenuOpen}><span className={rgbMode?"theme-dot rgb-dot":"theme-dot"} style={rgbMode?undefined:{background:accent.hex}}/><span>THEME</span><strong>{rgbMode?"RGB":accent.name}</strong><i>⌄</i></button>{themeMenuOpen&&<div className="theme-options" role="listbox" aria-label="Choose theme">{accentColors.map((color)=><button key={color.name} role="option" aria-selected={!rgbMode&&accent.name===color.name} className={!rgbMode&&accent.name===color.name?"selected":""} onClick={()=>{setRgbMode(false);setAccent(color);setThemeMenuOpen(false)}}><span className="theme-dot" style={{background:color.hex}}/><span>{color.name}</span><b>✓</b></button>)}<button role="option" aria-selected={rgbMode} className={rgbMode?"selected":""} onClick={()=>{setRgbMode(true);setThemeMenuOpen(false)}}><span className="theme-dot rgb-dot"/><span>RGB <small>Animated</small></span><b>✓</b></button></div>}</div><a className="youtube-link" href="https://youtube.com/@ginduyah/" target="_blank" rel="noreferrer" aria-label="Visit Ginduyah on YouTube"><span>▶</span> YouTube</a></div></header>
-    <SiteNav />
+    <SiteHeader />
     <section className="intro"><p className="eyebrow">REDDIT → SHORT-FORM READY</p><h1>Turn any story into a<br/><em>scroll-stopping card.</em></h1><p className="lede">Paste a Reddit post, tune the canvas, and download a crisp PNG for Shorts, TikTok, or Reels.</p></section>
     <section className="workspace">
       <div className="controls">

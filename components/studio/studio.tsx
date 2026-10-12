@@ -89,7 +89,7 @@ export function Studio() {
         {tab === "activity" && <ActivityView data={data} channelId={channel.id} />}
       </div>
     </div>
-    {modal && <StudioDialog title={modal.kind === "batch" ? "Upload & auto-date internet posts" : modal.kind === "add" ? "Add a submission" : modal.kind === "details" ? "Submission details" : modal.kind === "edit" ? "Edit submission" : modal.kind === "goals" ? "Daily targets" : modal.kind === "add-member" ? "Add a teammate" : modal.kind === "edit-member" ? "Rename teammate" : modal.kind === "channel" ? "Channel settings" : "Add a channel"} onClose={closeModal} busy={filesBusy}>
+    {modal && <StudioDialog title={modal.kind === "batch" ? "Upload & auto-date comics and posts" : modal.kind === "add" ? "Add a submission" : modal.kind === "details" ? "Submission details" : modal.kind === "edit" ? "Edit submission" : modal.kind === "goals" ? "Daily targets" : modal.kind === "add-member" ? "Add a teammate" : modal.kind === "edit-member" ? "Rename teammate" : modal.kind === "channel" ? "Channel settings" : "Add a channel"} onClose={closeModal} busy={filesBusy}>
       {!actorId && <label className="modal-identity">Your name<select aria-label="Your name for this change" value={actorId} onChange={e => state.selectMember(e.target.value)}><option value="">Choose your name</option>{data.members.filter(m => m.active).map(m => <option key={m.user_id} value={m.user_id}>{m.display_name}</option>)}</select></label>}
       {state.error && <p className="studio-error" role="alert">{state.error}</p>}
       {modal.kind === "batch" && <ScreenshotUpload data={data} channel={channel} actorId={actorId} request={state.fileRequest} onSaved={() => void state.refresh()} onBusy={setFilesBusy} />}

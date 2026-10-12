@@ -1,37 +1,68 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { batchDates, screenshotError, type FileRequest, type Screenshot } from '@/lib/studio/files';
-import { dayLabel, torontoDate, type Channel, type Item, type Snapshot } from '@/lib/studio/types';
+import { dayLabel, torontoDate, type Channel, type ContentType, type Item, type Snapshot } from '@/lib/studio/types';
 import { timeLabel } from '@/lib/studio/calendar';
 
-type Queued = { id:string; file:File; title:string; status:'waiting'|'uploading'|'done'|'error'; error?:string; saved?:Screenshot };
+type Queued = { id:string; file:File; title:string; contentType:ContentType; status:'waiting'|'uploading'|'done'|'error'; error?:string; saved?:Screenshot };
 const message = (error:unknown) => error instanceof Error ? error.message : 'Could not save. Please retry.';
 export function ScreenshotUpload({ data, channel, item, actorId, request, onSaved, onBusy }: {data:Snapshot;channel:Channel;item?:Item;actorId:string;request:FileRequest;onSaved:()=>void;onBusy:(busy:boolean)=>void}) {
   const [queue,setQueue]=useState<Queued[]>([]);
   const [start,setStart]=useState(torontoDate);
+  const [uploadAs,setUploadAs]=useState<'separate'|'one_video'>('separate');
+  const [videoType,setVideoType]=useState<ContentType>('internet_post');
+  const [videoTitle,setVideoTitle]=useState('');
   const [busy,setBusy]=useState(false);
   const [error,setError]=useState('');
   const running=useRef(false);
-  const input=useRef<HTMLInputElement>(null);
-  const dates=batchDates(data,channel,queue.filter(q=>q.status!=='done').length,start);
+  const grouped=!item && uploadAs==='one_video';
+  const groupSaved=grouped?queue.find(row=>row.saved)?.saved:undefined;
+  const started=queue.some(q=>q.status!=='waiting');
+  // Keep previews correct while the shared snapshot catches up with a saved row.
+  const knownItems=new Set(data.items.map(i=>i.id));
+  const savedItems: Item[]=queue.flatMap(row => {
+    const saved=row.saved;
+    if(!saved?.due_date || knownItems.has(saved.item_id))return [];
+    knownItems.add(saved.item_id);
+    return [{id:saved.item_id,channel_id:channel.id,due_date:saved.due_date,upload_time:saved.upload_time,
+      content_type:saved.content_type ?? row.contentType,title:row.title,link:'',notes:'',submitted_by:actorId,created_at:saved.created_at,version:1}];
+  });
+  const waiting=queue.filter(q=>q.status==='waiting');
+  const types=grouped ? (!started && queue.length ? [videoType] : []) : waiting.map(q=>q.contentType);
+  const dates=item?[]:batchDates({...data,items:[...data.items,...savedItems]},channel,types,start);
+  const hasMissingDate=!item && dates.some(date=>!date);
+  const done=queue.filter(q=>q.status==='done').length;
+
   function choose(files:FileList|null) {
     if(!files)return;
     if(files.length>20){setError('Choose up to 20 screenshots in one batch.');return;}
     const next=Array.from(files);
     const invalid=next.find(f=>screenshotError(f));
     if(invalid){setError(`${invalid.name}: ${screenshotError(invalid)}`);return;}
-    setError('');setQueue(next.map(file=>({id:crypto.randomUUID(),file,title:file.name.replace(/\.[^.]+$/,'').replace(/[_-]+/g,' '),status:'waiting'})));
+    setError('');
+    setVideoTitle(next[0]?.name.replace(/\.[^.]+$/,'').replace(/[_-]+/g,' ') || '');
+    setQueue(next.map(file=>({id:crypto.randomUUID(),file,title:file.name.replace(/\.[^.]+$/,'').replace(/[_-]+/g,' '),contentType:item?.content_type ?? 'internet_post',status:'waiting'})));
   }
   async function upload() {
-    if(running.current || !actorId)return;
+    if(running.current || !actorId || hasMissingDate)return;
     running.current=true;setBusy(true);onBusy(true);setError('');
+    // The first successful file creates the video; every remaining file uses its
+    // item ID, including after a paused upload resumes.
+    let sharedItemId=item?.id || groupSaved?.item_id;
     try {
       for(const row of queue.filter(q=>q.status!=='done')) {
         setQueue(list=>list.map(q=>q.id===row.id?{...q,status:'uploading',error:undefined}:q));
         const form=new FormData();form.set('file',row.file);form.set('id',row.id);form.set('actor_id',actorId);
-        if(item)form.set('item_id',item.id);else{form.set('channel_id',channel.id);form.set('start_date',start);form.set('title',row.title || 'Internet post screenshot');}
+        if(sharedItemId)form.set('item_id',sharedItemId);
+        else {
+          const contentType=grouped?videoType:row.contentType;
+          form.set('channel_id',channel.id);form.set('start_date',start);
+          form.set('content_type',contentType);
+          form.set('title',(grouped?videoTitle:row.title) || (contentType==='comic'?'Comic screenshot':'Internet post screenshot'));
+        }
         try {
           const result=await request(form);
+          if(grouped)sharedItemId=result.attachment.item_id;
           setQueue(list=>list.map(q=>q.id===row.id?{...q,status:'done',saved:result.attachment}:q));
           onSaved();
         } catch(err) {
@@ -43,16 +74,44 @@ export function ScreenshotUpload({ data, channel, item, actorId, request, onSave
     } finally {running.current=false;setBusy(false);onBusy(false);}
   }
   function move(index:number,direction:number){setQueue(rows=>{const next=[...rows];[next[index],next[index+direction]]=[next[index+direction],next[index]];return next;});}
-  let pendingIndex=0;
-  return <section className="screenshot-uploader"><h3>{item?'Add screenshots':'Upload internet-post screenshots'}</h3><p>{item?'Add one or several screenshots to this submission.':'Each screenshot becomes one internet-post submission. Dates fill the next open internet-post slots in the order below.'} Originals are kept at full resolution.</p>
-    {!item && <label>Start filling from<input type="date" value={start} min={torontoDate()} disabled={busy||queue.some(q=>q.status==='done'||q.status==='error')} onChange={e=>{if(e.target.value)setStart(e.target.value)}}/></label>}
-    <label className="screenshot-picker">Choose screenshots<input ref={input} type="file" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp" multiple disabled={busy} onChange={e=>choose(e.target.files)}/></label><small>PNG, JPG or WebP · up to 20 files · 10 MB each</small>
-    <div className="upload-queue">{queue.map((row,index)=>{const date=row.status==='done'?null:dates[pendingIndex++];return <article className="queued-screenshot" key={row.id}><div><strong>{index+1}. {row.file.name}</strong>{!item && <input aria-label={`Title for ${row.file.name}`} value={row.title} maxLength={200} disabled={busy||row.status!=='waiting'} onChange={e=>setQueue(rows=>rows.map(q=>q.id===row.id?{...q,title:e.target.value}:q))}/>}<small>{row.status==='done'?`Saved${row.saved?.due_date?` · ${dayLabel(row.saved.due_date)} · ${timeLabel(row.saved.upload_time)}`:''}`:row.status==='uploading'?'Uploading…':item?'Adds to this submission':date?`${dayLabel(date.day)} · ${timeLabel(date.time)}`:'No open dates—set internet-post daily targets.'}</small>{row.error && <p role="alert">{row.error}</p>}</div>{!item && !queue.some(q=>q.status!=='waiting') && <div className="queue-order"><button className="text-button" disabled={index===0||busy} aria-label={`Move ${row.file.name} earlier`} onClick={()=>move(index,-1)}>↑</button><button className="text-button" disabled={index===queue.length-1||busy} aria-label={`Move ${row.file.name} later`} onClick={()=>move(index,1)}>↓</button></div>}</article>;})}</div>
+  let waitingIndex=0;
+  return <section className="screenshot-uploader">
+    <h3>{item?'Add screenshots':'Upload comics and internet posts'}</h3>
+    <p>{item?'Add one or several screenshots to this submission.':grouped?'All selected screenshots belong to one video, with one title, type and date.':'Each screenshot creates a separate video. Choose Comic or Internet post for each file and fill the next open slots.'} Originals are kept at full resolution.</p>
+    {!item && <label>Upload as<select aria-label="Upload as" value={uploadAs} disabled={busy||started} onChange={e=>setUploadAs(e.target.value as 'separate'|'one_video')}>
+      <option value="separate">Separate videos · one per screenshot</option>
+      <option value="one_video">One video · multiple screenshots</option>
+    </select></label>}
+    {!item && <label>Start filling from<input type="date" value={start} min={torontoDate()} disabled={busy||started} onChange={e=>{if(e.target.value)setStart(e.target.value)}}/></label>}
+    <label className="screenshot-picker">Choose screenshots<input type="file" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp" multiple disabled={busy} onChange={e=>choose(e.target.files)}/></label>
+    <small>PNG, JPG or WebP · up to 20 files · 10 MB each</small>
+    {grouped && queue.length>0 && <div className="grouped-video-details">
+      <label>Video title<input aria-label="Video title" value={videoTitle} maxLength={200} disabled={busy||started} onChange={e=>setVideoTitle(e.target.value)}/></label>
+      <label>Video type<select aria-label="Video type" value={videoType} disabled={busy||started} onChange={e=>setVideoType(e.target.value as ContentType)}><option value="comic">Comic</option><option value="internet_post">Internet post</option></select></label>
+      <p className="detail-hint"><strong>{queue.length} screenshots → 1 video</strong><br/>{groupSaved?.due_date?`${dayLabel(groupSaved.due_date)} · ${timeLabel(groupSaved.upload_time)}`:dates[0]?`${dayLabel(dates[0].day)} · ${timeLabel(dates[0].time)}`:started?'Retry keeps the same video and any date already reserved.':`No open ${videoType==='comic'?'comic':'internet-post'} dates—set daily targets or choose another type.`}</p>
+    </div>}
+    <div className="upload-queue">{queue.map((row,index)=>{
+      const date=!grouped && row.status==='waiting'?dates[waitingIndex++]:null;
+      const label=(grouped?videoType:row.contentType)==='comic'?'Comic':'Internet post';
+      return <article className="queued-screenshot" key={row.id}>
+        <div><strong>{index+1}. {row.file.name}</strong>
+          {!item && !grouped && <>
+            <label>Type<select aria-label={`Type for ${row.file.name}`} value={row.contentType} disabled={busy||row.status!=='waiting'} onChange={e=>{const contentType=e.target.value as ContentType;setQueue(rows=>rows.map(q=>q.id===row.id?{...q,contentType}:q));}}>
+              <option value="comic">Comic</option><option value="internet_post">Internet post</option>
+            </select></label>
+            <input aria-label={`Title for ${row.file.name}`} value={row.title} maxLength={200} disabled={busy||row.status!=='waiting'} onChange={e=>setQueue(rows=>rows.map(q=>q.id===row.id?{...q,title:e.target.value}:q))}/>
+          </>}
+          <small>{row.status==='done'?`Saved · ${label}${row.saved?.due_date?` · ${dayLabel(row.saved.due_date)} · ${timeLabel(row.saved.upload_time)}`:''}`:row.status==='uploading'?'Uploading…':row.status==='error'?'Retry keeps any date already reserved for this file.':item?'Adds to this submission':grouped?`Screenshot ${index+1} of ${queue.length} for this video`:date?`${dayLabel(date.day)} · ${timeLabel(date.time)}`:`No open ${label.toLowerCase()} dates—set daily targets or choose another type.`}</small>
+          {row.error && <p role="alert">{row.error}</p>}
+        </div>
+        {!item && !started && <div className="queue-order"><button className="text-button" disabled={index===0||busy} aria-label={`Move ${row.file.name} earlier`} onClick={()=>move(index,-1)}>↑</button><button className="text-button" disabled={index===queue.length-1||busy} aria-label={`Move ${row.file.name} later`} onClick={()=>move(index,1)}>↓</button></div>}
+      </article>;
+    })}</div>
     {!item && queue.length>0 && <p className="detail-hint">Dates shown are a preview. The server checks again while saving so two people won’t fill the same slot. Uploaded screenshots still need editing and scheduling.</p>}
     {error && <p className="studio-error" role="alert">{error}</p>}
-    {queue.length>0 && <button className="primary" disabled={busy||!actorId||queue.every(q=>q.status==='done')||(!item&&!dates.length)} onClick={()=>void upload()}>{busy?'Uploading…':queue.every(q=>q.status==='done')?'All screenshots saved':queue.some(q=>q.status==='error')?'Retry remaining uploads':item?'Upload screenshots':'Upload and assign dates'}</button>}
+    {queue.length>0 && <button className="primary" disabled={busy||!actorId||done===queue.length||hasMissingDate} onClick={()=>void upload()}>{busy?'Uploading…':done===queue.length?'All screenshots saved':queue.some(q=>q.status==='error')?'Retry remaining uploads':item?'Upload screenshots':grouped?'Upload as one video':'Upload and assign dates'}</button>}
     {!actorId && <p className="detail-hint">Choose your name above before uploading.</p>}
-    <p role="status" aria-live="polite">{queue.filter(q=>q.status==='done').length>0?`${queue.filter(q=>q.status==='done').length} of ${queue.length} saved. Everyone with the team PIN can open them.`:''}</p>
+    <p role="status" aria-live="polite">{done>0?`${done} of ${queue.length} saved. Everyone with the team PIN can open them.`:''}</p>
   </section>;
 }
 export function ScreenshotAttachments({item,data,channel,actorId,request,onSaved,onBusy}:{item:Item;data:Snapshot;channel:Channel;actorId:string;request:FileRequest;onSaved:()=>void;onBusy:(busy:boolean)=>void}) {
