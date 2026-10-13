@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { StudioDialog } from "./dialog";
+import { VideoStats } from "./video-stats";
 import { ChannelForm, GoalForm, ItemForm, MemberForm } from "./forms";
 import { useStudio } from "./use-studio";
 import { ScreenshotUpload, ScreenshotAttachments } from "./screenshots";
@@ -16,6 +17,8 @@ type Tab = "calendar" | "board" | "team" | "activity";
 export function Studio() {
   const state = useStudio();
   const [channelId, setChannelId] = useState("");
+  const [allChannels, setAllChannels] = useState(false);
+  const [insightsId, setInsightsId] = useState<string | null>(null);
   const [day, setDay] = useState(torontoDate);
   const [tab, setTab] = useState<Tab>("calendar");
   const [today, setToday] = useState(torontoDate);
@@ -45,13 +48,15 @@ export function Studio() {
   const activeItem = modal && "id" in modal ? data.items.find(i => i.id === modal.id) : undefined;
   const currentGoal = goalFor(data, channel, day);
   const days = weekDays(day);
+  const insightsItem = data.items.find(i => i.id === insightsId);
+  const insightsChannel = insightsItem ? data.channels.find(c => c.id === insightsItem.channel_id) : undefined;
 
   return <>
     <div className="studio-shell">
       <aside className="studio-sidebar" aria-label="Workspace">
         <div className="sidebar-heading"><span className="studio-eyebrow">SHARED WORKSPACE</span><strong>{data.workspace.name}</strong></div>
         <div className="channel-label"><span>YOUR CHANNELS</span><button aria-label="Add channel" onClick={() => openModal({ kind: "new-channel" })}>+</button></div>
-        <div className="channel-switcher">{data.channels.map((c, index) => <button className={c.id === channel.id ? "selected" : ""} key={c.id} onClick={() => { setChannelId(c.id); setFilter("all"); setModal(null); }} aria-pressed={c.id === channel.id}><span className={`channel-initial channel-color-${index % 3}`}>{c.name.slice(0, 1).toUpperCase()}</span><span><strong>{c.name}</strong><small>{c.comic_goal + c.post_goal} uploads / day by default</small></span>{c.id === channel.id && <i aria-hidden="true">›</i>}</button>)}</div>
+        <div className="channel-switcher"><button className={allChannels ? "selected" : ""} onClick={() => { setAllChannels(true); setTab("calendar"); setModal(null); }} aria-pressed={allChannels}><span className="channel-initial">◎</span><span><strong>All Channels</strong><small>Combined calendar</small></span></button>{data.channels.map((c, index) => <button className={c.id === channel.id ? "selected" : ""} key={c.id} onClick={() => { setChannelId(c.id); setAllChannels(false); setFilter("all"); setModal(null); }} aria-pressed={c.id === channel.id}><span className={`channel-initial channel-color-${index % 3}`}>{c.name.slice(0, 1).toUpperCase()}</span><span><strong>{c.name}</strong><small>{c.comic_goal + c.post_goal} uploads / day by default</small></span>{c.id === channel.id && <i aria-hidden="true">›</i>}</button>)}</div>
         <div className="sidebar-divider" />
         <nav className="studio-tabs" aria-label="Studio views">{([['calendar', '▦', 'Calendar'], ['board', '☷', 'Daily board'], ['team', '◎', 'Team & credits'], ['activity', '≡', 'Activity']] as const).map(([value, icon, label]) => <button key={value} onClick={() => setTab(value)} aria-pressed={tab === value} className={tab === value ? "active" : ""}><span aria-hidden="true">{icon}</span>{label}</button>)}</nav>
         <div className="sidebar-bottom"><div className="member-identity"><span className="member-avatar">{actorId ? memberName(actorId).slice(0, 1).toUpperCase() : "?"}</span><span><strong>{actorId ? memberName(actorId) : "Choose your name"}</strong><small>No account needed</small></span></div><button className="text-button" onClick={() => { setModal(null); void state.lock(); }}>Lock studio</button><button className="text-button" onClick={() => openModal({ kind: "new-channel" })}>Add channel</button></div>
@@ -62,9 +67,9 @@ export function Studio() {
         <div className="identity-bar"><label>Working as<select aria-label="Your name" value={actorId} disabled={busy} onChange={e => state.selectMember(e.target.value)}><option value="">Choose your name</option>{data.members.filter(m => m.active).map(m => <option key={m.user_id} value={m.user_id}>{m.display_name}</option>)}</select></label><span>{actorId ? "Changes and completed work are credited to this name." : "Browse freely. Pick your name before making changes."}</span><button className="text-button" onClick={() => setTab("team")}>Manage team</button></div>
         {state.syncFailed && <p className="studio-notice" role="status">Updates are paused. Check your connection and refresh; the board may be out of date.</p>}
         {state.error && !modal && <div className="studio-error" role="alert">{state.error}<button className="text-button" onClick={() => { state.setError(""); void state.refresh(); }}>Refresh</button></div>}
-        {(tab === "calendar" || tab === "board") && <CoverageCards data={data} today={today} onChannel={id => { setChannelId(id); setTab("calendar"); setModal(null); }} />}
+        {(tab === "calendar" || tab === "board") && <CoverageCards data={data} today={today} onChannel={id => { setChannelId(id); setAllChannels(false); setTab("calendar"); setModal(null); }} />}
         <div className="calendar-toolbar"><div><button className="icon-button" aria-label="Previous week" onClick={() => setDay(shiftDate(day, -7))}>‹</button><strong>{dayLabel(days[0], { month: "short", day: "numeric" })} – {dayLabel(days[6], { month: "short", day: "numeric", year: "numeric" })}</strong><button className="icon-button" aria-label="Next week" onClick={() => setDay(shiftDate(day, 7))}>›</button></div><div><button className="text-button" onClick={() => setDay(torontoDate())}>Today</button><input aria-label="Choose date" type="date" value={day} onChange={e => { if (e.target.value) setDay(e.target.value); }} /><span>Toronto time</span></div></div>
-        {tab === "calendar" && <UploadCalendar data={data} channel={channel} days={days} today={today} onOpen={item => openModal({ kind: "details", id: item.id })} onAdd={(date, type, time) => openModal({ kind: "add", type, day: date, time })} onDay={date => { setDay(date); setTab("board"); }} />}
+        {tab === "calendar" && (allChannels ? <div className="all-channels-calendars">{data.channels.map(c => <div key={c.id} className="all-channel-section"><h2>{c.name} <small>{c.handle}</small></h2><UploadCalendar data={data} channel={c} days={days} today={today} onOpen={item => setInsightsId(item.id)} onAdd={(date, type, time) => { setChannelId(c.id); setAllChannels(false); openModal({ kind: "add", type, day: date, time }); }} onDay={date => { setChannelId(c.id); setAllChannels(false); setDay(date); setTab("board"); }} /></div>)}</div> : <UploadCalendar data={data} channel={channel} days={days} today={today} onOpen={item => setInsightsId(item.id)} onAdd={(date, type, time) => openModal({ kind: "add", type, day: date, time })} onDay={date => { setDay(date); setTab("board"); }} />)}
         {tab === "board" && <>
           <div className="week-grid" aria-label="Weekly upload progress">{days.map(date => {
             const c = countsFor(data, channel, date, "comic"); const p = countsFor(data, channel, date, "internet_post");
@@ -89,6 +94,7 @@ export function Studio() {
         {tab === "activity" && <ActivityView data={data} channelId={channel.id} />}
       </div>
     </div>
+    {insightsItem && insightsChannel && <VideoStats key={insightsItem.id} item={insightsItem} channel={insightsChannel} onClose={() => setInsightsId(null)} onEdit={() => { setChannelId(insightsChannel.id); setAllChannels(false); setInsightsId(null); openModal({ kind: "edit", id: insightsItem.id }); }} />}
     {modal && <StudioDialog title={modal.kind === "batch" ? "Upload & auto-date comics and posts" : modal.kind === "add" ? "Add a submission" : modal.kind === "details" ? "Submission details" : modal.kind === "edit" ? "Edit submission" : modal.kind === "goals" ? "Daily targets" : modal.kind === "add-member" ? "Add a teammate" : modal.kind === "edit-member" ? "Rename teammate" : modal.kind === "channel" ? "Channel settings" : "Add a channel"} onClose={closeModal} busy={filesBusy}>
       {!actorId && <label className="modal-identity">Your name<select aria-label="Your name for this change" value={actorId} onChange={e => state.selectMember(e.target.value)}><option value="">Choose your name</option>{data.members.filter(m => m.active).map(m => <option key={m.user_id} value={m.user_id}>{m.display_name}</option>)}</select></label>}
       {state.error && <p className="studio-error" role="alert">{state.error}</p>}
